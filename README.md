@@ -12,10 +12,6 @@
 | `prompts/` | 高质量 Prompt 模板库 |
 | `knowledge/` | 领域知识、学习笔记与参考资料 |
 
-## 已收录内容
-
-- [`skills/meeting-action-items/`](skills/meeting-action-items/)：将会议纪要、聊天记录或讨论笔记整理为可执行行动项。
-
 ## 使用约定
 
 - 每个 Skill 独立存放在 `skills/<skill-name>/` 下。
