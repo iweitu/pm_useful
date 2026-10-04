@@ -4,7 +4,7 @@
 
 ## 常见RAG过程
 
-![图片展示了RAG（检索增强生成）的工作流程。从左下角的“Raw Data Sources”开始，依次经过“Information Extraction”提取信息，“Chunking”分段，“Embedding”生成向量，再到“Vector Database”存储向量。之后，用户查询“Query”转换为向量，与知识库向量计算相似度，取出片段，与用户查询和片段组织成prompt输入LLM，最后生成回复“Response”。该图直观呈现了RAG从数据准备到生成回复的全过程。](https://feishu.cn/file/GIQ9b3brmoL6A2xkzr2cUPlbnMg)
+> 📷 原图说明：RAG（检索增强生成）的工作流程。从左下角的“Raw Data Sources”开始，依次经过“Information Extraction”提取信息，“Chunking”分段，“Embedding”生成向量，再到“Vector Database”存储向量。之后，用户查询“Query”转换为向量，与知识库向量计算相似度，取出片段，与用户查询和片段组织成prompt输入LLM，最后生成回复“Response”。该图直观呈现了RAG从数据准备到生成回复的全过程。
 
 1. `A->B->C`是构建知识库（索引）的过程：
 
@@ -21,22 +21,15 @@
 
 在知识库的创建和检索过程中，我们反复提及了向量：向量就是文本语义、多模态信息的数字表示。
 
-<grid>
-<column width-ratio="0.502926">
-![图片展示了向量作为多模态信息数字表示的示例。画面中有一组数字向量，周围标注了其对应的多模态信息含义，如颜色的RGB值（235, 52, 30）、形状值（苹果有多扁）、大小值（苹果个头有多大）、纹理值（苹果有多新鲜）。这与上下文提到的向量是文本语义、多模态信息的数字表示相呼应，以更直观的方式解释了向量可对多模态信息进行数字表征的概念。](https://feishu.cn/file/EV25bGaByosI2cxw7TMcVC83nce)
-</column>
-<column width-ratio="0.497074">
-![图片展示了向量在多模态信息中的应用。左侧是一个立方体，内部有不同颜色的点，代表向量数据。右侧展示了四张苹果图片，下方对应着其向量数据。这些向量数据以数字形式呈现，如\[245, 47, 32, 7, ...\]等。图片与上下文的关系是，通过直观示例说明向量是文本语义、多模态信息的数字表示，在知识库创建和检索过程中起到关键作用，帮助大语言模型捕捉词汇间的语义和语法。](https://feishu.cn/file/UlEvbuRKZo8yaixOpvicQlEnnjf)
-</column>
-</grid>
+> 📷 原图说明：向量作为多模态信息数字表示的示例。画面中有一组数字向量，周围标注了其对应的多模态信息含义，如颜色的RGB值（235, 52, 30）、形状值（苹果有多扁）、大小值（苹果个头有多大）、纹理值（苹果有多新鲜）。这与上下文提到的向量是文本语义、多模态信息的数字表示相呼应，以更直观的方式解释了向量可对多模态信息进行数字表征的概念。
+
+> 📷 原图说明：向量在多模态信息中的应用。左侧是一个立方体，内部有不同颜色的点，代表向量数据。右侧展示了四张苹果图片，下方对应着其向量数据。这些向量数据以数字形式呈现，如245, 47, 32, 7, ...\等。图片与上下文的关系是，通过直观示例说明向量是文本语义、多模态信息的数字表示，在知识库创建和检索过程中起到关键作用，帮助大语言模型捕捉词汇间的语义和语法。
 
 输入给大模型的词汇都会先转换成向量数据，当训练数据中出现多组类似的语言时在向量数据组成的高维空间相近的词汇就会离的更近，这样大语言模型就可以捕捉到**词汇间的语义和语法。**
 
 比如大模型会很明白苹果、西瓜的语义上接近，但是和公交车相差甚远。
 
-![示意图 @@@@ 图片为一个三维立方体示意图，内部有不同颜色和大小的圆点。红色圆点代表“公交车”，绿色圆点和蓝色圆点分别代表不同类别，其中蓝色圆点中有两个被标注为“西瓜”和“苹果”。此图可能用于展示不同类别事物的分布等相关内容。](https://feishu.cn/file/Iewibd5L3oqOmUx27gLcW7qlnHf)
-
-
+> 📷 原图说明：图片为一个三维立方体示意图，内部有不同颜色和大小的圆点。红色圆点代表“公交车”，绿色圆点和蓝色圆点分别代表不同类别，其中蓝色圆点中有两个被标注为“西瓜”和“苹果”。此图可能用于展示不同类别事物的分布等相关内容。
 
 # 为什么需要RAG
 
@@ -48,7 +41,7 @@
 
 想象你让一个人同时读完一本百科全书再回答问题，他要么崩溃，要么漏掉重点——**大模型处理超长文本时也是如此**。
 
-<sheet sheet-id="xb3WXc" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：长上下文模型 vs RAG 的对比（输入长度 / 处理方式 / 耗时 / 效果）
 
 #### **案例对比**
 
@@ -67,7 +60,7 @@
 
 #### 算力成本对比（以GPT-4 API为例）
 
-<sheet sheet-id="rf6b6a" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：不同模型的算力成本对比（模型版本 / 上下文窗口 / 输入单价 / 输出单价）
 
 #### 为什么厂商放弃“内卷”？
 
@@ -86,27 +79,21 @@
 
 ### 总结
 
-<sheet sheet-id="B9RCTN" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：RAG 相比长上下文方案的对比小结
 
 除非未来模型提供更长的上下文，并且降低生成成本和耗时，不然RAG技术还是最适合业务的技术。
 
 ## RAG vs SFT
 
-<sheet sheet-id="oroyns" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
-
-
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：RAG 与 SFT 微调的对比（知识更新 / 成本 / 适用场景）
 
 # Retrieval
 
-<callout emoji="🎯">
-核心目标：从海量知识中快速筛选与用户问题最相关的片段，为生成阶段提供高质量输入
-</callout>
+> 核心目标：从海量知识中快速筛选与用户问题最相关的片段，为生成阶段提供高质量输入
 
 ## 【索引阶段】构建知识库
 
-<callout emoji="🤔">
-如何让知识更易被“精准召回”？
-</callout>
+> 如何让知识更易被“精准召回”？
 
 ### **上下文中的指代、时间、人物关系处理**
 
@@ -118,7 +105,7 @@
 
 这些模糊的指代需要我们根据业务场景进行消解。
 
-<sheet sheet-id="IJ2Z59" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：指代、时间、人物关系的消解类型与处理方式
 
 ### 长文档分块（Chunking）
 
@@ -133,7 +120,7 @@
     - 用户评论分散在视频描述、评论区、私信等位置，分块后可按主题（如“穿搭教程”“产品售后”）快速定位。
 - **分块策略**：
 
-<sheet sheet-id="nMCfsy" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：长文档分块（Chunking）的分块策略对比（策略 / 适用场景 / 优缺点）
 
 - **优化实践**：
 
@@ -161,15 +148,15 @@ QA对提取也可以结合业务上高频Query分析进行，从而增加问题�
 
 ### 知识图谱
 
-![之前我尝试过用图谱的方式表示AI对用户的记忆](https://feishu.cn/file/REYYbHOfuo7zW8xsxBjcLOs5nrf)
+> 📷 原图说明：之前我尝试过用图谱的方式表示AI对用户的记忆
 
 当我们需要跨文档检索时，长文档分Chuck就需要进行分页检索，检索量大且耗时：
 
-<whiteboard token="FZvdwOK9xhoKWdb4iPIcl6UenAh"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 而业务上，我们知道蓝战非的定位是旅游博主，旅游博主的vlog一般和时间、地点强相关，因此我们可以借助大模型，结合时间地点整理稿件通过图谱索引：
 
-<whiteboard token="HtTow19jxhb2avbhSqzc0EGAndd"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 可以看到知识图谱除了可以索引稿件，也能基于图谱本身提供有用信息（比如基于图谱可以直接告诉用户去了西撒哈拉🇪🇭、智利🇨🇱、委内瑞拉🇻🇪三个国家）。
 
@@ -184,17 +171,21 @@ QA对提取也可以结合业务上高频Query分析进行，从而增加问题�
 1. **以上三种方法可以同时应用**，通过文档chunk提供基于相似度的检索能力，通过知识图谱提供结构化的检索能力，结合高频用户Query提取QA对提供直接检索能力
 2. 利用好**搜索**、**百科**这些公司已经优化好的结构化知识
 
-
-
 ## 检索方法综述
 
-<callout emoji="🫠">
-我想先综合对比下各类检索算法，让大家对每个算法的能力有概念，方便理解接下来的章节
-</callout>
+> 我想先综合对比下各类检索算法，让大家对每个算法的能力有概念，方便理解接下来的章节
 
 ### 基础检索方法对比
 
-<sheet sheet-id="46DpLZ" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ℹ️ **原对比表未随导出保留**，下表按本文后续章节的论述重建，原始评分数据请回飞书原文核对。
+
+| 检索方法 | 匹配方式 | 优势 | 局限 |
+|---|---|---|---|
+| 关键词检索（TF-IDF / BM25） | 词面匹配 | 精确、可解释、无需训练 | 忽略语义与词序，「苹果手机」与「手机苹果」同分 |
+| 向量检索（BGE-M3 等） | 语义相似度 | 能召回语义相近但用词不同的内容 | 精确匹配弱，对专有名词/编号不敏感 |
+| 混合检索 | 关键词 + 向量 + 融合排序 | 兼顾精确与语义，效果最好 | 系统复杂度与成本上升 |
+
+> 结论（原文）：知识库场景需要模糊检索与上下文相关的文档，因此**关键词检索与向量检索更适合**。
 
 在知识库场景，需要模糊检索与上下文相关的文档，因此关键词检索以及向量检索更适合。
 
@@ -229,51 +220,45 @@ QA对提取也可以结合业务上高频Query分析进行，从而增加问题�
   - **TF-IDF**：一篇2000字的文章堆砌10次“健康食品”得分高。
   - **BM25**：一篇500字的商品简介出现5次“健康食品”得分更高。
 
-<sheet sheet-id="Fm0kHO" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：TF-IDF 与 BM25 的评分机制对比
 
 ### 向量检索：语义相似度匹配
 
-<sheet sheet-id="6cmFmA" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：向量检索的语义相似度匹配要点
 
 ### 综合对比（BM25 vs BGE-M3 vs 混合检索）
 
-<sheet sheet-id="c0tzAv" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：BM25 / BGE-M3 / 混合检索的横向对比（含效果评分）
 
 ### 知识库场景选型参考
 
-<readonly-block type="isv"></readonly-block>
+> ⚠️ 原文档此处为飞书交互组件，未随导出保留。
 
 ### 向量数据库选型参考
 
 我们需要使用支持向量检索的数据库：
 
-<sheet sheet-id="diQ2tM" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：向量数据库选型参考（数据库 / 特点 / 适用规模）
 
 Viking 支持向量+关键词的混合检索：
 
-![图片展示了BM25与向量检索的混合检索流程。左侧为BM25检索流程，关键词检索后与向量检索结果混合排序；右侧为向量检索流程，文档分块后经相似度模型计算向量，再与查询文本计算相似度。两者结合可提升结果相关性、系统集成简单、检索性能提升，适用于电商商品搜索等场景，但存在信息损失、系统复杂度增加、成本上升等问题。](https://feishu.cn/file/EIdmbzLjfof130x55uQcHp7KnWe)
+> 📷 原图说明：BM25与向量检索的混合检索流程。左侧为BM25检索流程，关键词检索后与向量检索结果混合排序；右侧为向量检索流程，文档分块后经相似度模型计算向量，再与查询文本计算相似度。两者结合可提升结果相关性、系统集成简单、检索性能提升，适用于电商商品搜索等场景，但存在信息损失、系统复杂度增加、成本上升等问题。
 
-更多关于Viking DB 👉 <cite doc-id="MjYtdl3svogmZTxrNo2cubfrnKh" file-type="docx" title="VikingDB向量数据库--火山引擎" type="doc"></cite>。
-
-
+更多关于Viking DB 👉 （内部文档引用：VikingDB向量数据库--火山引擎）。
 
 ## 【检索阶段】构建检索词
 
-<callout emoji="🍺">
-核心目标：结合业务场景，构建出能精准反应用户意图的检索词
-</callout>
+> 核心目标：结合业务场景，构建出能精准反应用户意图的检索词
 
 比如下面这段上下文：
 
-![图片展示了RAG检索阶段中Query改写的相关内容。用户提问“国外“国外的我吃溺了”，AI回复“指代替换：类似麦当劳的餐厅”；用户追问“还有什么类似的餐厅吗”，AI回复“错误纠正：吃溺->吃腻”；用户意图是想要了解国内类似麦当劳的餐厅。该图片与上下文紧密相关，直观呈现了Query改写中指代消除、错误纠正等场景，帮助理解Query改写要解决的几类问题题。](https://feishu.cn/file/YSAubrDa5or9hzxsUOccekjWnGh)
+> 📷 原图说明：RAG检索阶段中Query改写的相关内容。用户提问“国外“国外的我吃溺了”，AI回复“指代替换：类似麦当劳的餐厅”；用户追问“还有什么类似的餐厅吗”，AI回复“错误纠正：吃溺->吃腻”；用户意图是想要了解国内类似麦当劳的餐厅。该图片与上下文紧密相关，直观呈现了Query改写中指代消除、错误纠正等场景，帮助理解Query改写要解决的几类问题题。
 
 如果我们直接拿最后一个用户query：“国外的我吃溺了” 去知识库检索，那准召肯定是很低的。所以要进行Query改写，并构建检索词。
 
 ### Query改写要解决的几类问题
 
-<blockquote><p>感谢<cite type="user" user-id="ou_3db72c653eed08bed82081ee5dcfd0e3" user-name="韩建平"></cite>整理</p></blockquote>
-
-#### 指代消除
+<p>感谢（内部文档引用：内部文档）整理</p> #### 指代消除
 
 ```Plain Text
 用户:汉武帝是谁?
@@ -356,7 +341,24 @@ Query改写和检索词提取需要很强的上下文理解能力，是一个生
 
 因此我们可以使用doubao1.5-lite模型，构建如下Prompt：
 
-<table><colgroup><col/><col/></colgroup><tbody><tr><td>Prompt</td><td><pre caption="&#xA;" lang="javascript"><code>你是一个专业的信息检索助手，需要根据用户的消息历史生成两类检索词。请严格按照以下步骤处理：<br/>**输入**：消息历史（多轮对话文本）  <br/>**输出**：JSON格式，包含以下字段：  <br/>{  <br/>    "核心词（必须匹配）"："反映用户主要意图"<br/>    "扩展词（建议匹配）"："基于用户主要意图的扩展检索词"<br/>}<br/><br/>当前时间：2025年3月27日</code></pre></td></tr><tr><td>模型</td><td>doubao1.5-lite-32k</td></tr><tr><td>测试用例</td><td><grid><column width-ratio="0.551606"><img name="image.png" alt="图片展示了一段对话及对应的Prompt信息。用户询问“汉武帝是谁？”，AI回复其为西汉第七位皇帝刘彻。用户接着询问他做了什么，AI给出回复。。return“汉武帝的事迹”“汉武帝的政治举措”“汉武帝的军事成就”“汉武帝的文化政策”等核心词和扩展词。图片下方的Prompt信息中，核心词为“汉武帝的事迹”，扩展词包括政治举措、军事成就成就、文化政策等，还列出了耗时1.35秒、200Tokens、97Characters等数据。该图片与上下" mime="image/png" scale="1.168000" src="WHx2bRnAYodGnRxObZicvxfsnDd"/></column><column width-ratio="0.448394"><img name="image.png" alt="图片展示了一段对话及对应的检索词构建信息。对话中，AI以“我是邱奇遇的AI分身”开场，用户表示想听其流浪故事。下方检索词构建信息显示，核心词为“邱奇遇的流浪故事”，扩展词有“邱奇遇流浪经历、邱奇遇流浪见闻”，排除词为空。该图片与上下文紧密相关，直观呈现了上下文提到的构建检索词时，核心词、扩展词、排除词的具体内容，辅助理解检索词构建过程。" mime="image/png" scale="1.576674" src="HfopbL4oco8U3BxjujFc5Tt8nGe"/></column></grid><grid><column width-ratio="0.433455"><img name="image.png" alt="图片展示了用户与AI的对话及AI生成的检索词构建结果。用户询问什么粉底液好用，AI询问肤质类型，用户回复混合。AI生成的检索词包括“核心词（必须匹配）”为“混合肤质好用的粉底液”，“扩展词（建议匹配）”为“适合混合肤质的持久粉底液、混合肤质遮瑕好的粉底液”，“排除词（必须过滤）”为空。该图片与上下文紧密相关，直观呈现了上下文所述的构建检索词操作示例。" mime="image/png" scale="1.155063" src="KAoyb0GlJoBX93xeiHycsW91nEb"/></column><column width-ratio="0.566545"><img name="image.png" alt="图片展示的是一个关于“深度 自动生成深度学习框架安装教程”的对话界面。用户提问后，图片呈现了模型生成的Prompt内容，包括核心词“深度学习框架安装教程”、扩展词“常见深度学习框架安装步骤、深度学习框架安装注意事项、不同系统下深度学习框架安装”、排除" mime="image/png" scale="0.929936" src="TDwxbyr6koVO0nxP3P8cwhA3nZe"/></column></grid></td></tr><tr><td>耗时优化</td><td>上面是通过fornax测试的。如果走方舟部署，可以应用LoRA 结合的 4bit 或 8bit 量化、缓存等手段，提升推理速度。目前我们线上max是500ms。<br/><b>耗时和输出token数强相关，我们要想办法压缩输出token</b>。比如不输出json，直接输出所有检索词列表。</td></tr></tbody></table>
+| 项目 | 内容 |
+|---|---|
+| Prompt | 见下方代码块 |
+
+```text
+你是一个专业的信息检索助手，需要根据用户的消息历史生成两类检索词。请严格按照以下步骤处理：
+**输入**：消息历史（多轮对话文本）
+**输出**：JSON格式，包含以下字段：
+{
+    "核心词（必须匹配）"："反映用户主要意图"
+    "扩展词（建议匹配）"："基于用户主要意图的扩展检索词"
+}
+
+当前时间：2025年3月27日
+```
+| 模型 | doubao1.5-lite-32k |
+| 测试用例 | > 📷 原图说明：一段对话及对应的Prompt信息。用户询问“汉武帝是谁？”，AI回复其为西汉第七位皇帝刘彻。用户接着询问他做了什么，AI给出回复。。return“汉武帝的事迹”“汉武帝的政治举措”“汉武帝的军事成就”“汉武帝的文化政策”等核心词和扩展词。图片下方的Prompt信息中，核心词为“汉武帝的事迹”，扩展词包括政治举措、军事成就成就、文化政策等，还列出了耗时1.35秒、200Tokens、97Characters等数据。该图片与上下 > 📷 原图说明：一段对话及对应的检索词构建信息。对话中，AI以“我是邱奇遇的AI分身”开场，用户表示想听其流浪故事。下方检索词构建信息显示，核心词为“邱奇遇的流浪故事”，扩展词有“邱奇遇流浪经历、邱奇遇流浪见闻”，排除词为空。该图片与上下文紧密相关，直观呈现了上下文提到的构建检索词时，核心词、扩展词、排除词的具体内容，辅助理解检索词构建过程。 > 📷 原图说明：用户与AI的对话及AI生成的检索词构建结果。用户询问什么粉底液好用，AI询问肤质类型，用户回复混合。AI生成的检索词包括“核心词（必须匹配）”为“混合肤质好用的粉底液”，“扩展词（建议匹配）”为“适合混合肤质的持久粉底液、混合肤质遮瑕好的粉底液”，“排除词（必须过滤）”为空。该图片与上下文紧密相关，直观呈现了上下文所述的构建检索词操作示例。 > 📷 原图说明：展示的是一个关于“深度 自动生成深度学习框架安装教程”的对话界面。用户提问后，图片呈现了模型生成的Prompt内容，包括核心词“深度学习框架安装教程”、扩展词“常见深度学习框架安装步骤、深度学习框架安装注意事项、不同系统下深度学习框架安装”、排除 |
+| 耗时优化 | 上面是通过fornax测试的。如果走方舟部署，可以应用LoRA 结合的 4bit 或 8bit 量化、缓存等手段，提升推理速度。目前我们线上max是500ms。 **耗时和输出token数强相关，我们要想办法压缩输出token**。比如不输出json，直接输出所有检索词列表。 |
 
 ### 思考：能否借助FunctionCall能力，不单独过Query改写模型
 
@@ -367,21 +369,19 @@ Query改写和检索词提取需要很强的上下文理解能力，是一个生
 
 使用豆包pro1.5 functioncall，可以看到在生成函数调用参数环节需要1.79s，相比于直接使用豆包pro-lite模型耗时差不多。
 
-![图片展示了Doubao平台中使用豆包pro1.5模型进行对话调试的记录详情。左侧为调试记录调用树，显示了PromptExecutor、PromptTemplate等节点。右侧是具体运行记录，包含工具、标签、输入、输出等信息，如工具为doubao-1.5-pro-32k，输入为用户提问“用什么样的脉冲时序”，输出为检索到的关键词列表，如“核心关键词”“低频信号的相位调制”等。该图与上下文讨论的通过FunctionCall能力提取检索词的方法耗时相关，直观呈现了运行过程。](https://feishu.cn/file/KYuPbvGf7ohzdWxkev3cpPbNnkc)
+> 📷 原图说明：Doubao平台中使用豆包pro1.5模型进行对话调试的记录详情。左侧为调试记录调用树，显示了PromptExecutor、PromptTemplate等节点。右侧是具体运行记录，包含工具、标签、输入、输出等信息，如工具为doubao-1.5-pro-32k，输入为用户提问“用什么样的脉冲时序”，输出为检索到的关键词列表，如“核心关键词”“低频信号的相位调制”等。该图与上下文讨论的通过FunctionCall能力提取检索词的方法耗时相关，直观呈现了运行过程。
 
 不过一次调用模型是有token缓存的，如果上下文较长比如40条的话，会不会耗时上有优化呢🤔 :
 
 当对话历史40条时，基于functioncall提取检索词的方法耗时从1.74s->2.71s。
 
-![图片展示了PromptExecutor的调用树及对话界面。调用树中“doubao-15-pro-32k”节点被红色框突出显示，其下有“retrive_knowledges”节点。对话界面中，Input栏显示了“query”和“MessageType”等信息，右侧Output栏显示了“retrive_knowledges”结果，包含“core_keywords”等字段。该图片与上下文讨论的基于FunctionCall提取检索词的方法耗时相关，直观呈现了相关操作及结果。](https://feishu.cn/file/OvhTbwbOeofBEFxhUFXchYYEn5g)
+> 📷 原图说明：PromptExecutor的调用树及对话界面。调用树中“doubao-15-pro-32k”节点被红色框突出显示，其下有“retrive_knowledges”节点。对话界面中，Input栏显示了“query”和“MessageType”等信息，右侧Output栏显示了“retrive_knowledges”结果，包含“core_keywords”等字段。该图片与上下文讨论的基于FunctionCall提取检索词的方法耗时相关，直观呈现了相关操作及结果。
 
 而基于豆包lite模型的提取方法，耗时则1.88s->2.31s
 
-![图片展示了使用doubao-lite模型进行检索词提取的界面。左侧为Prompt Template，包含系统指令、输入示例、输出示例及JSON格式等内容。右侧是运行区域，显示了用户输入的文本“混合皮粉底液色号选择”，模型输出了检索词，如“混合皮粉底液色号选择”“混合皮粉底液色号搭配”等，还显示了2.31s的耗时、12294Tokens、95 Characters等信息。该图片与上下文讨论的基于doubao-lite模型提取检索词的耗时相关，直观呈现了耗时情况。](https://feishu.cn/file/BfsNbkVRxoqICAx2CjPc93LKn2a)
+> 📷 原图说明：使用doubao-lite模型进行检索词提取的界面。左侧为Prompt Template，包含系统指令、输入示例、输出示例及JSON格式等内容。右侧是运行区域，显示了用户输入的文本“混合皮粉底液色号选择”，模型输出了检索词，如“混合皮粉底液色号选择”“混合皮粉底液色号搭配”等，还显示了2.31s的耗时、12294Tokens、95 Characters等信息。该图片与上下文讨论的基于doubao-lite模型提取检索词的耗时相关，直观呈现了耗时情况。
 
-<callout emoji="🍺">
-functioncall方案在耗时上相比于单独过模型并无优势。
-</callout>
+> functioncall方案在耗时上相比于单独过模型并无优势。
 
 #### 幻觉
 
@@ -396,7 +396,7 @@ def _get_model():
 
 ## 【检索阶段】粗筛 & 精排
 
-<readonly-block type="isv"></readonly-block>
+> ⚠️ 原文档此处为飞书交互组件，未随导出保留。
 
 ### 分阶段流程的必要性
 
@@ -427,7 +427,7 @@ def _get_model():
 
 说到谁最擅长理解Context--当然是大模型。我们可以借助doubao-lite模型来实现Context Reranker。整体流程如图：
 
-<whiteboard token="OO9pwPGxohp5BKbTOc9cRhZunVd"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 #### max_prompt_tokens=1
 
@@ -462,8 +462,6 @@ def _get_model():
 #### 与温度参数的关系
 
 - **高温（`temperature=10`）** 会压低高概率 token 的优势，使生成结果更随机。
-
-
 
 #### 伪代码
 
@@ -507,22 +505,17 @@ async def token_logprobs(self, context, cur_question, doc, alpha=0.1,):
 我们可以将视频、图片、文本编码到同一个向量空间，这样可以实现混合搜索（比如用文本搜图片）。具体的检索方式和上文介绍的一致。可以参考milvus向量数据库出的[教程](https://github.com/milvus-io/bootcamp/blob/master/bootcamp/tutorials/quickstart/multimodal_rag_with_milvus.ipynb)。
 
 > ps：milvus出了很多向量检索的应用教程：https://milvus.io/zh/bootcamp
->
-> ![图片展示了Milvus向量数据库提供的多种应用示例。包括多模态混合检索、Graph RAG图形RAG、Hybrid Search混合搜索、Image Similarity Search图像相似性搜索、Recommender System推荐系统、Video Similarity Search视频相似性搜索、Audio Similarity Search音频相似性搜索、Molecular Similarity Search分子相似性搜索。每种示例均有“Learn More了解更多信息”和“Live Demo 现场演示”按钮，部分示例还配有“Learn More了解更多信息”按钮。这些示例与文档中介绍的Milvus在向量检索应用方面的内容相呼应。](https://feishu.cn/file/DAsSbCb3JoJ2rkx3f22ck1czngf)
-
-
+> 📷 原图说明：Milvus向量数据库提供的多种应用示例。包括多模态混合检索、Graph RAG图形RAG、Hybrid Search混合搜索、Image Similarity Search图像相似性搜索、Recommender System推荐系统、Video Similarity Search视频相似性搜索、Audio Similarity Search音频相似性搜索、Molecular Similarity Search分子相似性搜索。每种示例均有“Learn More了解更多信息”和“Live Demo 现场演示”按钮，部分示例还配有“Learn More了解更多信息”按钮。这些示例与文档中介绍的Milvus在向量检索应用方面的内容相呼应。
 
 # Augmentation & Generation
 
 这部分比较简单。常见做法是把检索出来的知识拼接到Prompt中。特别注意，如果没有知识，也需要补充明确的指令告知模型如何处理。
 
-
-
 # 如何评估RAG的效果
 
 ## 评价维度
 
-<whiteboard token="ZPD2wMDeZhrzRzbFtgEchv7tnwc"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 ## 机评
 
@@ -532,7 +525,11 @@ RAGAs方法进行评估：[GitHub](https://github.com/explodinggradients/ragas)�
 
 RAGAs方法需要我们提供一些问题和问题的答案（GroundTruth）：
 
-<table><colgroup><col/><col/></colgroup><thead><tr><th>Question</th><th>GroundTruth</th></tr></thead><tbody><tr><td>你环球旅行目前到哪个洲了？</td><td>我目前在非洲，科特迪瓦，这里号称西非小巴黎</td></tr><tr><td>你去过哪些洲了？</td><td>我去过亚洲、大洋洲、北美洲、中美洲、南美洲，现在在非洲</td></tr><tr><td>你觉得委内瑞拉怎么样？<blockquote><p>视频：https://www.douyin.com/user/MS4wLjABAAAAn-vTqtfLFPB8S6Q1-8QOxT9w4JhQFSNvFEho_guE2V4?from_tab_name=main&amp;modal_id=7423390724512632104</p></blockquote></td><td>旅行体验很差，从委内瑞拉陆路进入巴西，起初就遇到了签证问题：每次签证的证件照都被拍得像通缉犯一样。到达委内瑞拉的陆路口岸后，办理出境手续时又被卡住，明明有签证却不让出境，理由是必须从进入的口岸出境。经过导游和工作人员长达三个小时的争斗后，最后花了500美元托关系才终于过关。</td></tr></tbody></table>
+| 项目 | 内容 |
+|---|---|
+| 你环球旅行目前到哪个洲了？ | 我目前在非洲，科特迪瓦，这里号称西非小巴黎 |
+| 你去过哪些洲了？ | 我去过亚洲、大洋洲、北美洲、中美洲、南美洲，现在在非洲 |
+| 你觉得委内瑞拉怎么样？视频：https://www.douyin.com/user/MS4wLjABAAAAn-vTqtfLFPB8S6Q1-8QOxT9w4JhQFSNvFEho_guE2V4?from_tab_name=main&amp;modal_id=7423390724512632104 | 旅行体验很差，从委内瑞拉陆路进入巴西，起初就遇到了签证问题：每次签证的证件照都被拍得像通缉犯一样。到达委内瑞拉的陆路口岸后，办理出境手续时又被卡住，明明有签证却不让出境，理由是必须从进入的口岸出境。经过导游和工作人员长达三个小时的争斗后，最后花了500美元托关系才终于过关。 |
 
 RAGAs 提供了一些 [指标](https://docs.ragas.io/en/latest/concepts/metrics/index.html)，可用于从组件层面和整体流程两个方面评估 RAG 流程的性能。
 
@@ -560,7 +557,7 @@ RAGAs 同样为评估 RAG 流程的 整体流程 提供了指标，例如 [答�
 
 1. **声明检查（Claim Checking）**: 另一个LLM作为检查器，根据参考文本（检索的上下文或标准答案）验证每个提取的声明的准确性。
 
-![声明级检查](https://feishu.cn/file/GHMfbp3lEom6g6xvPAKcQ8l2nWc)
+> 📷 原图说明：声明级检查
 
 RAGChecker执行以下比较：
 
@@ -575,26 +572,21 @@ RAGChecker执行以下比较：
 
 和机评指标类似，只是把环节中的模型评价替换为人评价。
 
-
-
 # RAG框架调研
 
 ## 公司内
 
-### <cite doc-id="LnqYwFgkZiTgEKk7Khjc0EYNnWg" file-type="wiki" title="ByteRAG 统一框架、平台与算子建设" type="doc"></cite>
+### （内部文档引用：ByteRAG 统一框架、平台与算子建设）
 
 > ByteRAG是字节内部的统一RAG平台。 RAG作为一种增强搜索以及和LLM结合的技术手段，被广泛应用在各业务线上。不同业务线在RAG能力建设上有相同的诉求：
->
 > 1. 稳定、高吞吐的索引构建链路，提供不同的文件解析、chunking、embedding等能力
 > 2. 高并发的检索召回链路，提供Query改写、多路召回、Rerank等能力
 > 3. 评测能力，能够评估业务效果。 ByteRAG满足了以上的诉求，并且作为统一的RAG平台，方便业务方快速搭建RAG链路，减少无必要的重复造轮子
->
 > 目前Coze、Cici和一方应用都已经基于ByteRAG平台上线了相应的RAG链路。ByteRAG提供两种接入方式：
->
 > 1. SDK接入：业务方需要自己去管理数据资源、Job资源和Service资源。这种是最灵活的接入方式，业务方可以自定义算子
 > 2. 平台服务化接入：ByteRAG平台会负责托管所有的资源，提供最高效快速的接入方式
 
-![图片展示了ByteRAG的架构图，分为业务层和RAG平台层。业务层有Coze、Clic bot等应用。RAG平台层包含召回、排序等多种算子，如Query理解模块、检索模块等。此外，还有计算资源和索引数据存储部分。该图与上文提到的ByteRAG已接入包括Coze、抖音客服等AI产品业务相呼应，直观呈现了ByteRAG的整体架构及各部分的关联，体现其在业务应用中的支撑作用。](https://feishu.cn/file/CG8Kb4trPoS3dGxI0ZhcHWetnxf)
+> 📷 原图说明：ByteRAG的架构图，分为业务层和RAG平台层。业务层有Coze、Clic bot等应用。RAG平台层包含召回、排序等多种算子，如Query理解模块、检索模块等。此外，还有计算资源和索引数据存储部分。该图与上文提到的ByteRAG已接入包括Coze、抖音客服等AI产品业务相呼应，直观呈现了ByteRAG的整体架构及各部分的关联，体现其在业务应用中的支撑作用。
 
 ByteRAG目前已接入包括 Coze、Fornax、抖音客服、猫箱 在内的AI产品业务。
 
@@ -602,41 +594,39 @@ ByteRAG目前已接入包括 Coze、Fornax、抖音客服、猫箱 在内的AI�
 
 ByteRAG提供了召回和排序算子，（如图，Lark数据集就是一组飞书文档）
 
-![图片展示了ByteRAG召回和排序算子的相关信息。召回算子中，flow_encoder在Lark数据集上效果优于bge_encoder，且支持多语言。排序算子中，flow_ranker在Lark数据集上效果优于bge_reranker，支持多语言。图片与上下文紧密相关，是对ByteRAG提供召回和排序算子这一内容的具体说明，直观呈现了算子在Lark数据集上的评估效果及支持情况。](https://feishu.cn/file/Q8xWb4i78oIsY1xZp1Bc4FpZnBh)
+> 📷 原图说明：ByteRAG召回和排序算子的相关信息。召回算子中，flow_encoder在Lark数据集上效果优于bge_encoder，且支持多语言。排序算子中，flow_ranker在Lark数据集上效果优于bge_reranker，支持多语言。图片与上下文紧密相关，是对ByteRAG提供召回和排序算子这一内容的具体说明，直观呈现了算子在Lark数据集上的评估效果及支持情况。
 
 #### Agentic RAG
 
 目前ByteRAG也提供**Agentic RAG**能力，下图节选自ByteRAG介绍文档：
 
-![图片展示了ByteRAG的Agentic RAG能力架构。分为Planning和Reranking两个阶段，Planning阶段包括获取问题、获取答案、获取答案的上下文、获取答案的上下文的上下文、获取答案的上下文的上下文的上下文；Reranking阶段有获取答案、获取答案的上下文、获取答案的上下文的上下文、获取答案的上下文的上下文的上下文。图片还列出了RAG Agent的架构，包括RAG Agent、Task Graph、DAG、LM、RAG Agent的执行流程等。该图与上下文紧密相关，直观呈现了Agentic RAG能力的架构组成。](https://feishu.cn/file/LSwDbHsg6oZDV0xRlaKcdUHdnEc)
-
-
+> 📷 原图说明：ByteRAG的Agentic RAG能力架构。分为Planning和Reranking两个阶段，Planning阶段包括获取问题、获取答案、获取答案的上下文、获取答案的上下文的上下文、获取答案的上下文的上下文的上下文；Reranking阶段有获取答案、获取答案的上下文、获取答案的上下文的上下文、获取答案的上下文的上下文的上下文。图片还列出了RAG Agent的架构，包括RAG Agent、Task Graph、DAG、LM、RAG Agent的执行流程等。该图与上下文紧密相关，直观呈现了Agentic RAG能力的架构组成。
 
 ## 公司外
 
 ### [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG)
 
-![图片展示了LightRAG项目的相关信息。左侧显示“LightRAG Public”标识，右侧有“Watch 115”“Fork 1.9k”“Starred 13.2k”等数据，分别对应关注者、fork次数和星标数量。这些数据直观呈现了项目在GitHub平台上的受欢迎程度，与文档中介绍LightRAG项目的内容相呼应，体现了其在社区的影响力。](https://feishu.cn/file/Pl9JbKxFaoLg5vxqqrfc3TUGnnc)
+> 📷 原图说明：LightRAG项目的相关信息。左侧显示“LightRAG Public”标识，右侧有“Watch 115”“Fork 1.9k”“Starred 13.2k”等数据，分别对应关注者、fork次数和星标数量。这些数据直观呈现了项目在GitHub平台上的受欢迎程度，与文档中介绍LightRAG项目的内容相呼应，体现了其在社区的影响力。
 
 > 论文：[LIGHTRAG: SIMPLE AND FAST RETRIEVAL-AUGMENTED GENERATION](https://arxiv.org/pdf/2410.05779)
 
-![图片展示了LightRAG框架的整体架构（Figure 1）。左侧是Graph-based Text Indexing，包含D()、P()、R()等操作，以及Entity & Rel Extraction。中间是Deduplication，有Match和Beekeeper等信息。右侧是Index Graph用于检索，有Entity Name、Description等。最右侧是Dual-level Retrieval Paradigm，有Entities、Relations、Contexts等。该图与上下文紧密相关，直观呈现了LightRAG框架从文本索引到检索的全流程。](https://feishu.cn/file/T4mCbRZLfoEreHxkPSYcfCVbnde)
+> 📷 原图说明：LightRAG框架的整体架构（Figure 1）。左侧是Graph-based Text Indexing，包含D()、P()、R()等操作，以及Entity & Rel Extraction。中间是Deduplication，有Match和Beekeeper等信息。右侧是Index Graph用于检索，有Entity Name、Description等。最右侧是Dual-level Retrieval Paradigm，有Entities、Relations、Contexts等。该图与上下文紧密相关，直观呈现了LightRAG框架从文本索引到检索的全流程。
 
 #### 知识库构建链路
 
 通过实体（Entitles）、关系（Relationships）、关联的知识片段（Contexts）的方式索引知识：
 
-![图片展示了HKUDS/LightRAG知识库构建链路。输入文档经Text Chunks提取后，通过Low ER Model嵌入，生成Entities Data和Relations Data。Entities Data包含name、type等，Relations Data有source、target等。这些数据用于更新知识图谱，同时也有向量存储。此外，Entities Data和Relations Data还分别通过Text Enhance和ER Model嵌入，生成更新描述，用于更新知识图谱。该图与上下文紧密相关，直观呈现了知识库构建的流程。](https://feishu.cn/file/VaHEbAlPhoUce1x74gWcjBWVnRb)
+> 📷 原图说明：HKUDS/LightRAG知识库构建链路。输入文档经Text Chunks提取后，通过Low ER Model嵌入，生成Entities Data和Relations Data。Entities Data包含name、type等，Relations Data有source、target等。这些数据用于更新知识图谱，同时也有向量存储。此外，Entities Data和Relations Data还分别通过Text Enhance和ER Model嵌入，生成更新描述，用于更新知识图谱。该图与上下文紧密相关，直观呈现了知识库构建的流程。
 
 #### 知识库检索链路
 
 根据生成的low level检索词和high level检索词两路检索：
 
-![图片展示了HKUDS/LightRAG知识图谱检索与生成的流程。从Query开始，经Local Query Context、Global Query Context等环节，进入Retrieval阶段，通过Local和Global检索词分别检索Local和Global知识库，获取相关实体、关系及Contexts。随后进行Embedding，生成Low和High level Keywords，结合Keywords Extraction Prompt和System Prompt，生成Confined Context，最后通过System Template Prompt和Confined Prompt，完成Response生成。该图与上下文紧密相关，直观呈现了知识图谱检索与生成的各步骤及流程。](https://feishu.cn/file/ASGrbOhwho7psSxmkB6cTuNunVe)
+> 📷 原图说明：HKUDS/LightRAG知识图谱检索与生成的流程。从Query开始，经Local Query Context、Global Query Context等环节，进入Retrieval阶段，通过Local和Global检索词分别检索Local和Global知识库，获取相关实体、关系及Contexts。随后进行Embedding，生成Low和High level Keywords，结合Keywords Extraction Prompt和System Prompt，生成Confined Context，最后通过System Template Prompt和Confined Prompt，完成Response生成。该图与上下文紧密相关，直观呈现了知识图谱检索与生成的各步骤及流程。
 
 #### 可视化管理
 
-![图片展示了LightRAG知识图谱界面。左侧有知识图谱布局方式选择栏，当前选中“Force Atlas”。界面中部呈现知识图谱，节点以不同颜色标识，如“LLM”“Knowledge Graph”等，节点间有线条连接。右侧为节点详情区域，显示节点ID、标签、属性等信息，如“LLM”节点的描述、名称、类型等。该图与文档中知识库检索链路部分相关，直观呈现了知识图谱的结构与节点信息。](https://feishu.cn/file/Rulgboe54ob44dxpGQocT5trnEe)
+> 📷 原图说明：LightRAG知识图谱界面。左侧有知识图谱布局方式选择栏，当前选中“Force Atlas”。界面中部呈现知识图谱，节点以不同颜色标识，如“LLM”“Knowledge Graph”等，节点间有线条连接。右侧为节点详情区域，显示节点ID、标签、属性等信息，如“LLM”节点的描述、名称、类型等。该图与文档中知识库检索链路部分相关，直观呈现了知识图谱的结构与节点信息。
 
 #### 使用姿势非常简单
 
@@ -645,7 +635,6 @@ ByteRAG提供了召回和排序算子，（如图，Lark数据集就是一组飞
 > - `hybrid`：结合局部和全局检索方法
 > - `naive`：执行基本搜索，不使用高级技术
 > - `mix`：整合知识图谱和向量检索。Mix 模式结合了知识图谱和向量搜索：
->
 >   - 使用结构化（知识图谱）和非结构化（向量）信息
 >   - 通过分析关系和上下文提供全面的答案
 >   - 支持通过 HTML img 标签的图像内容
@@ -703,11 +692,11 @@ if __name__ == "__main__":
 
 ### [infiniflow/ragflow](https://github.com/infiniflow/ragflow)
 
-![图片展示了RAGFlow在GitHub上的项目页面部分信息。左上角有“ragflow”字样及图标，右上角显示该项目的关注者数量为219，分叉数量为4.3k，收藏数量达46.9k 。图片与上文内容相关，上文介绍了RAGFlow是一款开源的RAG引擎，可为企业及个人提供精简的RAG工作流程，此图直观呈现了该项目在平台上的受关注程度等情况。](https://feishu.cn/file/QPTSbgDXCoaHSgx1KFYcEIQpnos)
+> 📷 原图说明：RAGFlow在GitHub上的项目页面部分信息。左上角有“ragflow”字样及图标，右上角显示该项目的关注者数量为219，分叉数量为4.3k，收藏数量达46.9k 。图片与上文内容相关，上文介绍了RAGFlow是一款开源的RAG引擎，可为企业及个人提供精简的RAG工作流程，此图直观呈现了该项目在平台上的受关注程度等情况。
 
 > [RAGFlow](https://ragflow.io/) 是一款基于深度文档理解构建的开源 RAG（Retrieval-Augmented Generation）引擎。RAGFlow 可以为各种规模的企业及个人提供一套精简的 RAG 工作流程，结合大语言模型（LLM）针对用户各类不同的复杂格式数据提供可靠的问答以及有理有据的引用。
 
-![图片展示了RAG框架的架构图。左侧为用户输入，包括Questions、Documents和File，经Web Nginx处理后，Question和File进入API Server，进行Query Analyze、Task Dispatch等操作。右侧是LLMs、OCR、Document Layout Analyze、Table Structure Recognition等组件，OCR和右侧组件间有Chunk传输。中间部分是Multi - way Recall、Re - rank、Answer等环节，最终Answer返回给用户。该图直观呈现了RAG框架从输入到输出的流程及各组件间关系。](https://feishu.cn/file/NSJObNUhyov1iPx63ElcBec0nFc)
+> 📷 原图说明：RAG框架的架构图。左侧为用户输入，包括Questions、Documents和File，经Web Nginx处理后，Question和File进入API Server，进行Query Analyze、Task Dispatch等操作。右侧是LLMs、OCR、Document Layout Analyze、Table Structure Recognition等组件，OCR和右侧组件间有Chunk传输。中间部分是Multi - way Recall、Re - rank、Answer等环节，最终Answer返回给用户。该图直观呈现了RAG框架从输入到输出的流程及各组件间关系。
 
 #### 深度文档理解
 
@@ -715,11 +704,11 @@ if __name__ == "__main__":
 
 布局识别（识别：文本、标题、配图、配图标题、表格、表格标题、页头、页尾、参考引用、公式）
 
-![图片展示了深度文档理解（DeepDoc）中视觉处理的布局识别示例。左侧为文档内容，包含数学公式、表格、段落等结构化信息，如矩阵A的计算公式、表格数据等。右侧为文档的视觉识别结果，以红色框标注了文本、标题、配图、配图标题、表格、表格标题、页头、页尾、参考引用、公式等结构化信息。该图片与上下文紧密相关，直观呈现了深度文档理解中视觉处理对文档结构化信息的识别能力。](https://feishu.cn/file/UW7Tbk5Y6odvfex3Ot3cS0odnte)
+> 📷 原图说明：深度文档理解（DeepDoc）中视觉处理的布局识别示例。左侧为文档内容，包含数学公式、表格、段落等结构化信息，如矩阵A的计算公式、表格数据等。右侧为文档的视觉识别结果，以红色框标注了文本、标题、配图、配图标题、表格、表格标题、页头、页尾、参考引用、公式等结构化信息。该图片与上下文紧密相关，直观呈现了深度文档理解中视觉处理对文档结构化信息的识别能力。
 
 表结构识别（识别：列、行、列标题、行标题、合并单元格）
 
-![图片展示了文档中布局识别和表结构识别的示例。左侧为布局识别示例，呈现了文本、标题、配图、配图标题、表格、表格标题、页头、页尾、参考引用、公式等结构化信息。右侧为表结构识别示例，以表格形式呈现了Code Head of Expenditure、Tax Revenue Fees and Charges、Others、Total、Investment and Interest Income/Capital Receipts、Total Receipts等信息，通过红色框线突出显示了列、行、列标题、行标题、合并单元格等结构。该图片与上下文介绍的深度文档理解中视觉处理部分的内容紧密相关，直观呈现了视觉识别文档/表格结构化信息的效果。](https://feishu.cn/file/NCDybfs2WouuCBxewBOcKG8un9e)
+> 📷 原图说明：文档中布局识别和表结构识别的示例。左侧为布局识别示例，呈现了文本、标题、配图、配图标题、表格、表格标题、页头、页尾、参考引用、公式等结构化信息。右侧为表结构识别示例，以表格形式呈现了Code Head of Expenditure、Tax Revenue Fees and Charges、Others、Total、Investment and Interest Income/Capital Receipts、Total Receipts等信息，通过红色框线突出显示了列、行、列标题、行标题、合并单元格等结构。该图片与上下文介绍的深度文档理解中视觉处理部分的内容紧密相关，直观呈现了视觉识别文档/表格结构化信息的效果。
 
 通过视觉识别文档/表格中的结构化信息，更好的理解文本的重要性以及关系。
 
@@ -727,19 +716,18 @@ if __name__ == "__main__":
 
 ragflow提供了工作流配置能力，是低代码配置模式：
 
-![图片展示了ragflow提供的低代码配置模式工作流配置界面。界面中有多个蓝色边框的节点，节点内有文字说明，如“Begin Q”“Interface”“categories”等。节点间有蓝色箭头连接，部分节点间有红色箭头连接。右上角有“Run”和“Save”按钮。该图与上下文紧密相关，直观呈现了ragflow工作流配置能力，帮助理解其低代码配置模式下的工作流程设计。](https://feishu.cn/file/SzSmbD8NsokKCkxhrKbcNjDSnje)
+> 📷 原图说明：ragflow提供的低代码配置模式工作流配置界面。界面中有多个蓝色边框的节点，节点内有文字说明，如“Begin Q”“Interface”“categories”等。节点间有蓝色箭头连接，部分节点间有红色箭头连接。右上角有“Run”和“Save”按钮。该图与上下文紧密相关，直观呈现了ragflow工作流配置能力，帮助理解其低代码配置模式下的工作流程设计。
 
 ### [microsoft/graphrag](https://github.com/microsoft/graphrag)
 
-![图片展示了GraphRAG的GitHub页面部分信息。左侧是GraphRAG的图标及名称，右侧有“Watch”“Fork”“Starred”按钮，分别显示数字165、2.4k、24k，旁边有下拉箭头。该图片与文档中对GraphRAG的介绍相关，直观呈现了其在GitHub上的受欢迎程度，与文档中对GraphRAG作为检索增强生成（RAG）方法的介绍相呼应。](https://feishu.cn/file/XEZSbTSfQo3oGgxccQdcXO5VnHf)
+> 📷 原图说明：GraphRAG的GitHub页面部分信息。左侧是GraphRAG的图标及名称，右侧有“Watch”“Fork”“Starred”按钮，分别显示数字165、2.4k、24k，旁边有下拉箭头。该图片与文档中对GraphRAG的介绍相关，直观呈现了其在GitHub上的受欢迎程度，与文档中对GraphRAG作为检索增强生成（RAG）方法的介绍相呼应。
 
 > 论文：[From Local to Global: A GraphRAG Approach to Query-Focused Summarization](https://arxiv.org/pdf/2404.16130)
->
 > 检索增强生成（RAG）利用从外部知识源检索相关信息，使大型语言模型（LLMs）能够回答关于私有和/或以前未见过的文档集合的问题。然而，**RAG 在针对整个文本语料库的全局问题上会失败，比如“数据集中的主要主题是什么？”，因为这本质上是一个查询聚焦的摘要（QFS）任务，而不是一个明确的检索任务**。同时，先前的 QFS 方法不能扩展到典型 RAG 系统索引的文本数量。为了结合这些对比方法的优势，我们提出了 GraphRAG，一种基于图的对私有文本语料库进行问答的方法，它随着用户问题的通用性和源文本的数量而扩展。我们的方法使用 LLM 在两个阶段构建图索引：首先，从源文档中推导出实体知识图，然后为所有紧密相关实体的组预生成社区摘要。给定一个问题，每个社区摘要用于生成部分响应，然后在对用户的最终响应中再次总结所有部分响应。对于在 100 万Token范围内的数据集中的一类全局理解问题，我们表明 GraphRAG 在生成答案的全面性和多样性方面比传统的 RAG 基线有实质性的改进。
 
 GraphRAG 是一种结构化、分层的检索增强生成（RAG）方法，与使用纯文本片段的朴素语义搜索方法不同。它从原始文本中提取知识图谱，构建社区层次结构，为社区生成摘要，并在执行基于 RAG 的任务时利用这些结构。与基线 RAG 相比，GraphRAG 在处理复杂信息的问答性能上有显著提升，能更好地处理连接不同信息点以及理解大型数据集或单个大文档的语义概念等问题。
 
-![使用 Leiden 技术对图形执行分层聚类。每个圆圈都是一个实体（例如，一个人、一个地方或一个组织），大小代表实体的程度，颜色代表其社区。](https://feishu.cn/file/DYFJbn32noZxbmx9LKmcfkdpnFf)
+> 📷 原图说明：使用 Leiden 技术对图形执行分层聚类。每个圆圈都是一个实体（例如，一个人、一个地方或一个组织），大小代表实体的程度，颜色代表其社区。
 
 GraphRAG 流程包括索引和查询步骤，索引时将输入语料库切片为 TextUnits，提取实体、关系和关键声明，进行层次聚类并生成社区摘要；
 
@@ -749,37 +737,29 @@ GraphRAG 流程包括索引和查询步骤，索引时将输入语料库切片�
 - 局部搜索：通过扇出到特定实体的邻居和相关概念来推理特定实体
 - DRIFT搜索：通过扇出到特定实体的邻居和相关概念来搜索有关特定实体的推理，但增加了社区信息的上下文
 
-
-
 ## 从RAG的演进视角
 
 ### Naive RAG -> Advance RAG -> Modular RAG
 
 Naive RAG 表示最简单的实现，其中检索在生成之前发生一次。高级 RAG 引入了更复杂的检索机制，包括多个检索步骤或改进的查询策略。模块化 RAG 是最复杂的方法，它将检索视为一个灵活的组件，可以根据需要在整个生成过程中动态调用，具体见：[介绍](https://medium.com/@drjulija/what-are-naive-rag-advanced-rag-modular-rag-paradigms-edff410c202e)
 
-![图片展示了Naive RAG、Advanced RAG和Modular RAG三种RAG框架的流程图。Naive RAG从用户查询出发，经索引、检索、提示生成输出；Advanced RAG在检索后有预检索和后检索，检索后也有重排、摘要和融合；Modular RAG将检索视为灵活组件，有路由、搜索、检索、重排、重写、演示、记忆、融合等模块，还呈现了三种模式的流程。该图与上下文介绍的RAG演进视角相关，直观呈现了不同框架的差异。](https://feishu.cn/file/NcCubA5b9o4kuExFoaKciLkfnTg)
+> 📷 原图说明：Naive RAG、Advanced RAG和Modular RAG三种RAG框架的流程图。Naive RAG从用户查询出发，经索引、检索、提示生成输出；Advanced RAG在检索后有预检索和后检索，检索后也有重排、摘要和融合；Modular RAG将检索视为灵活组件，有路由、搜索、检索、重排、重写、演示、记忆、融合等模块，还呈现了三种模式的流程。该图与上下文介绍的RAG演进视角相关，直观呈现了不同框架的差异。
 
 前面一节介绍的ByteRAG的AgenticRAG我理解就是属于Modular RAG，人类编排的固定Workflow->大模型自主规划的动态Workflow，目的是解决一些更通用的问题。
 
-
-
 ## 综合对比
 
-<sheet sheet-id="foS6li" token="GCctsjN01hXRlGtietJcXKCtnFd"></sheet>
+> ⚠️ **原表格未随导出保留**（飞书嵌入表格 `<sheet>`）。原表应有：LightRAG / RAGFlow / GraphRAG 及三类知识组织方式的横向对比
 
 知识图谱和传统的文档分chunk、提取QA对可以联合使用。文档分chunk覆盖原始稿件中有直接语义的信息，知识图谱覆盖原始稿件中隐含的实体、关系、摘要信息。
 
-
-
 # 实战：还原「[蓝战非](https://www.douyin.com/user/MS4wLjABAAAAn-vTqtfLFPB8S6Q1-8QOxT9w4JhQFSNvFEho_guE2V4?from_tab_name=main)旅游vlog」知识
 
-![图片展示了蓝战非](https://feishu.cn/file/UXGXbcQavoBBThxUGzpcHtA0nSh)
+> ⚠️ 原文档此处有一张图，未随导出保留。
 
-<callout emoji="🍺">
-蓝战非是抖音上非常出名的主播，目前在环游世界，发了不少vlog，我本人也非常喜欢。
+> 蓝战非是抖音上非常出名的主播，目前在环游世界，发了不少vlog，我本人也非常喜欢。
 不过主页里面的视频有几百个，并且单个视频一般都在20min左右，想找到我的兴趣点太麻烦了。
 **所以我想通过构建知识库，并将知识与视频切片关联起来，通过自然语言对话的方式来检索视频切片，快速找到我的兴趣点！**
-</callout>
 
 ## 整体思路
 
@@ -787,27 +767,25 @@ Naive RAG 表示最简单的实现，其中检索在生成之前发生一次。�
 
 蓝战非的视频形式非常结构化，基本上1、2个视频游完一个国家，游完一个大洲去另一个大洲，所以我们可以按照时间、地点的方式对蓝战非的稿件进行索引。不过视频中往往不会提及时间，所以我们取视频发布时间。
 
-<whiteboard token="PMymw2TelhXOwabSXLBcZcNinwh"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 蓝战非的视频解说很详细，所以ASR中包含很多知识，并且ASR的每句话能和视频的切片时间关联起来：
 
 接口：lab.ocr.video_ocr_v3，ExtractVideoTextsWithVid，会提取ASR以及ASR对应的时间戳
 
-![图片中 addCriterion](https://feishu.cn/file/E7GTbtQrcoPObTxhHumczbIfn5e)
+> 📷 原图说明：addCriterion
 
 所以我们通过ASR来提取稿件中的知识点，作为视频切片的索引。
 
 ### 知识检索
 
-<whiteboard token="P10uwnwlBh0QtDbFSGPcLdK9nwd"></whiteboard>
+> ⚠️ **原画板未随导出保留**（飞书白板 `<whiteboard>`）。
 
 Demo知识不多，所以不单独做ContextReranker了，直接让大模型来判断。通过Functioncall的形式，构建函数参数就是构建检索词的过程，在函数内部实现知识检索。
 
 ## 一步一步搭建
 
-<callout emoji="🍺">
-由于链路简单，所以直接使用LangChain搭建RAG链路，使用Milvus向量数据库存储知识。
-</callout>
+> 由于链路简单，所以直接使用LangChain搭建RAG链路，使用Milvus向量数据库存储知识。
 
 ### Step1：获取蓝战非原始稿件，按照时间、地点整理稿件总结知识
 
@@ -817,19 +795,19 @@ Demo知识不多，所以不单独做ContextReranker了，直接让大模型来�
 
   - 2025年3月25日，非洲->纳米比亚🇳🇦-赞比亚🇿🇲-南非🇿🇦
 
-  <source name="7485379082788556069.json" mime="application/json" size="1352215" token="MNrhboF3goVX37xqoJvcIS07nFb"/>
+> 📎 原文档附件：`7485379082788556069.json`（未随导出保留）
+
 - `7470271833305091354`（vid：v0300fg10000culrk9nog65i68r0lvi0）
 
   - 2025年2月12日，非洲->埃及🇪🇬
 
-  <source name="7470271833305091354.json" mime="application/json" size="2136511" token="Pikrby4J0o1teUxim6OczJGinBd"/>
+> 📎 原文档附件：`7470271833305091354.json`（未随导出保留）
+
 - `7446764425131969844`（vid：v0d00fg10000ctc3f7nog65i512nua0g）
 
   - 2024年12月11日，南美洲->玻利维亚🇧🇴
 
-  <source name="7446764425131969844.json" mime="application/json" size="1103846" token="JVbFbgcTqo045CxgUQ1cZbw6n3H"/>
-
-
+> 📎 原文档附件：`7446764425131969844.json`（未随导出保留）
 
 我们将每个ASR文本和对应的视频切片提取出来：并输入给大模型，让大模型：
 
@@ -1216,7 +1194,6 @@ from langchain_openai import AzureChatOpenAI
 from pymilvus import MilvusClient
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-
 class RAGChatbot:
     def __init__(self, collection_name="rag_demo"):
         self.collection_name = collection_name
@@ -1366,9 +1343,7 @@ if __name__ == "__main__":
 
 ## Demo
 
-![图片展示的是一个对话界面，上方提示可询问关于蓝鲸旅行行程的问题。下方显示了大模型的回复，内容为一段JSON格式的数据，包含多个“data”项，每个“data”项下有“date”“entity”“time”“content”“country”“location”“video_segments”等字段，如“date”为“2024/12/11”等。底部有“你是否还有其他问题？”的提示。该图片与上下文紧密相关，是大模型对关于蓝鲸旅行行程问题的回复展示。](https://feishu.cn/file/SCuKbtMpfowgXIx8EsdcfLJAn33)
-
-
+> 📷 原图说明：展示的是一个对话界面，上方提示可询问关于蓝鲸旅行行程的问题。下方显示了大模型的回复，内容为一段JSON格式的数据，包含多个“data”项，每个“data”项下有“date”“entity”“time”“content”“country”“location”“video_segments”等字段，如“date”为“2024/12/11”等。底部有“你是否还有其他问题？”的提示。该图片与上下文紧密相关，是大模型对关于蓝鲸旅行行程问题的回复展示。
 
 # 参考信息
 
