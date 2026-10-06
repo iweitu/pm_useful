@@ -1,0 +1,20 @@
+{
+  "name": "@local/xhs-rag",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "小红书收藏库：导入分享链接、建立关键词索引，并在对话中被检索。",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4"
+  }
+}

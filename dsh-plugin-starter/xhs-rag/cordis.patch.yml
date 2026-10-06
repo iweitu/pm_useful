@@ -1,0 +1,16 @@
+# 一个 bundle patch 是顶层 YAML 数组，元素是 Loader patch entry。
+#
+# 行 id 是稳定地址：你 profile 的 cordis.patch.yml、home 级 patch、以及
+# 未来的 --patch 覆盖层都按这个 id 定位这一行。改名等于让所有覆盖失效。
+#
+# 注意：patch 是**整体替换**目标行的 config，不是深合并。所以覆盖本行时要
+# 把想保留的字段全部重述一遍。
+- insert:
+    - id: xhs-rag
+      name: '@local/xhs-rag'
+      config:
+        # 留空时回退到 $DSH_HOME 环境变量。显式写出可以让收藏库落在别处。
+        homeDir: ''
+        maxResults: 5
+        maxLinksPerImport: 20
+        surfaceDegraded: true

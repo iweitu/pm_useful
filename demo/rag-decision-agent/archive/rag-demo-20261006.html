@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG 教学演示页 · 小红书三主题构造数据</title>
+<!--
+  单文件自包含 RAG 教学演示页（v2，2026-10-06）
+  规格：docs/prd/02-rag-web-demo-PRD.md（v0.3）+ docs/prd/05-实现交接说明.md
+  本版变更（按最新要求）：
+    1. 删去「① 链接识别」「② 抓取与解析」两个环节 —— 无法做真实抓取，直接使用构造好的帖子数据
+    2. 数据换成 3 个主题的构造帖子：云南旅游 / 上海餐厅 / 敏感肌油皮粉底液（各 4 条，共 12 条）
+    3. 版式：入库侧（预处理）在左、检索侧在右；每个环节的解释说明收进 ⓘ 说明符号，悬停/聚焦时展开
+  硬约束：单个 HTML 文件、CSS/JS/数据全部内嵌、双击打开、不发任何网络请求。
+
+  代码结构：
+    #rag-data  : 内嵌构造数据（12 条帖子 + dataset 元数据）
+    #rag-core  : 纯逻辑，不依赖 DOM，可单独在 Node/浏览器里跑
+    #rag-ui    : 只做展示与事件绑定
+    底部附页   : 理解自测（G3 工具）、事件面板、实现自检（当场复算）
+-->
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --line:#e2e6ea; --ink:#1f2329; --muted:#697077;
+  --real:#0b7a3b; --real-bg:#e7f6ed; --real-line:#bfe3cd;
+  --sim:#a35a00; --sim-bg:#fdf1e0; --sim-line:#f0d5ac;
+  --accent:#1a4fd6; --accent-bg:#eef2fe; --accent-line:#c7d5fb;
+  --warn-bg:#fff8e6; --warn-line:#f2dfa8; --warn-ink:#7a5200;
+  --err:#b42318;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
+.wrap{max-width:1440px;margin:0 auto;padding:14px 16px 56px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+h1{font-size:21px;line-height:1.35;margin:0 0 6px}
+h2{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+h3{font-size:13.5px;margin:12px 0 6px}
+p{margin:6px 0}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.mono{font-family:var(--mono)}
+code{font-family:var(--mono);background:#f2f4f7;border:1px solid #e6e9ee;border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.num{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;border-radius:6px;background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:14px;border:1px solid var(--accent-line)}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap;vertical-align:middle}
+.badge.real{background:var(--real-bg);color:var(--real);border:1px solid var(--real-line)}
+.badge.sim{background:var(--sim-bg);color:var(--sim);border:1px solid var(--sim-line)}
+.badge.neutral{background:#f2f4f7;color:#4b5563;border:1px solid #e2e6ea}
+.badge.warn{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line)}
+
+/* ---- ⓘ 说明符号：默认收起，悬停 / 聚焦 / 点击时展开 ---- */
+.info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;
+  border:1px solid #c9ced6;background:#fff;color:var(--muted);font:700 11px/1 Georgia,serif;cursor:help;user-select:none;flex:0 0 auto}
+.info:hover,.info:focus{border-color:var(--accent);color:var(--accent)}
+.info .tip{display:none;position:absolute;top:calc(100% + 7px);z-index:40;width:min(460px,88vw);
+  background:#1f2329;color:#eef0f3;border-radius:9px;padding:10px 13px;font:400 12.5px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  text-align:left;white-space:normal;box-shadow:0 10px 28px rgba(15,20,30,.3)}
+.info .tip.left{left:0}
+.info .tip.right{right:0}
+.info .tip::before{content:"";position:absolute;top:-6px;border:6px solid transparent;border-top:0;border-bottom-color:#1f2329}
+.info .tip.left::before{left:9px}
+.info .tip.right::before{right:9px}
+.info:hover .tip,.info:focus .tip,.info.pinned .tip{display:block}
+.info .tip code{background:#343a42;border-color:#454c56;color:#f0f2f5}
+.info .tip b{color:#fff}
+.info .tip ul{margin:6px 0 0;padding-left:18px}
+.info .tip li{margin:3px 0}
+
+.keynote{background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:8px;padding:7px 10px;font-size:12.5px;margin:6px 0}
+.strip{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.strip-item{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;background:#fafbfc;white-space:nowrap}
+.strip-item.real{border-color:var(--real-line);background:var(--real-bg)}
+.strip-item.sim{border-color:var(--sim-line);background:var(--sim-bg)}
+.grid{display:grid;gap:10px}
+.grid2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+
+/* ---- 双栏版式：左 = 入库侧（预处理），右 = 检索侧 ---- */
+.layout{display:grid;gap:14px;grid-template-columns:minmax(0,44fr) minmax(0,56fr);align-items:start;margin-top:14px}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.colhead{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:7px 12px;border-radius:9px;
+  background:var(--accent-bg);border:1px solid var(--accent-line);color:var(--accent);font-weight:700;position:sticky;top:8px;z-index:6}
+.colhead .sub{font-weight:400;font-size:12px;color:#4b5b8f}
+@media (max-width:1040px){ .layout{grid-template-columns:minmax(0,1fr)} .colhead{position:static} }
+
+.note{border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fcfdfe;min-width:0}
+.note.degraded{border-color:var(--sim-line);background:#fffdf8}
+.note.target{outline:2px solid var(--accent);outline-offset:2px;background:var(--accent-bg)}
+.note h4{margin:0 0 4px;font-size:13.5px;line-height:1.5}
+.kv{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:12px;color:var(--muted);margin:3px 0}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;background:#f2f4f7;border:1px solid #e6e9ee;border-radius:4px;padding:0 5px;margin:1px 3px 1px 0;overflow-wrap:anywhere}
+.chip.hit{background:#fff3cd;border-color:#f0dca0}
+.chip.cjk1{background:#eef2fe;border-color:#c7d5fb}
+.box{border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fcfdfe;min-width:0}
+.box.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+.box.sim{background:var(--sim-bg);border-color:var(--sim-line);color:var(--sim)}
+.box.real{background:var(--real-bg);border-color:var(--real-line);color:var(--real)}
+.box.info{background:var(--accent-bg);border-color:var(--accent-line)}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 11px;color:var(--ink)}
+.btn:hover:not(:disabled){border-color:#c9ced6;background:#fafbfc}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover:not(:disabled){background:#1740b3;border-color:#1740b3}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.preset{font-family:var(--mono)}
+.btn.linkish{border:0;background:none;color:var(--accent);text-decoration:underline;padding:0}
+input[type=text],input[type=number],select{font:inherit;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);max-width:100%}
+input[type=number]{width:88px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:7px 0}
+.row.tight{gap:6px;margin:4px 0}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0;display:block;overflow-x:auto;white-space:nowrap}
+table.tbl th,table.tbl td{border:1px solid var(--line);padding:3px 7px;text-align:left;vertical-align:top}
+table.tbl th{background:#f7f9fb;font-weight:600}
+table.tbl td.num-cell{text-align:right;font-family:var(--mono)}
+.hit{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:7px 0;background:#fff;min-width:0}
+.hit.degraded{border-left:4px solid var(--sim-line)}
+.hit-head{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:4px}
+.rank{font-weight:700;color:var(--accent)}
+.score{font-family:var(--mono);font-weight:700;background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:6px;padding:1px 8px}
+.snippet{background:#fafbfc;border:1px dashed var(--line);border-radius:6px;padding:6px 8px;margin:5px 0;overflow-wrap:anywhere}
+mark{background:#ffe9a8;padding:0 1px;border-radius:2px}
+pre.prompt{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:9px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:12px;max-height:360px;overflow:auto;margin:7px 0}
+details{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fcfdfe;margin:7px 0;min-width:0}
+details>summary{cursor:pointer;font-weight:600;overflow-wrap:anywhere}
+details[open]>summary{margin-bottom:7px}
+.legend-list{margin:6px 0 0;padding-left:20px}
+.legend-list li{margin:3px 0}
+.evt-time{font-family:var(--mono);white-space:nowrap}
+.evt-type{font-family:var(--mono);font-weight:700}
+.selfcheck-ok{color:var(--real);font-weight:700}
+.selfcheck-fail{color:var(--err);font-weight:700}
+.quiz-q{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:7px 0;background:#fcfdfe}
+.quiz-opt{display:block;margin:3px 0;font-size:13px}
+.quiz-result{margin-top:5px;font-size:13px}
+.ok-txt{color:var(--real);font-weight:700}
+.bad-txt{color:var(--err);font-weight:700}
+.theme-head{display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-weight:700;font-size:13.5px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== 顶部：标题 + 三条硬声明 + 环节一览 + 图例 ===================== -->
+  <header class="card" id="top">
+    <h1>RAG 教学演示页 · 小红书三主题（云南旅游 / 上海餐厅 / 敏感肌油皮粉底液）
+      <span class="info" tabindex="0" role="button" aria-label="本页说明">i<span class="tip left">
+        <b>本页是什么</b><br>
+        把 RAG 的两条主线做成一页可点的流程。<b>入库侧（左）</b>：③ 分块 → ④ 分词 → ⑤ 建索引；
+        <b>检索侧（右）</b>：⑥ 检索词构建 → ⑦ 打分排序 → ⑧ Prompt 组装 → ⑨ 回答与出处。
+        （环节编号沿用 PRD 4.2 表里的原始编号，便于和 PRD 对照。）<br><br>
+        <b>与 PRD v0.3 的差异（本版按最新要求调整）</b><br>
+        1. <b>已删去「① 链接识别」与「② 抓取与解析」</b>：本页无法做真实抓取，数据直接以「已解析入库」的结果使用。因此环节总数由 9 变 7（5 个 ✅ 真实 + 2 个 🔶 模拟）。PRD 的 4.2 ①②、FR-2、FR-3、AC-2、AC-3、AC-15 需要相应更新。<br>
+        2. 数据换成构造的 3 个主题帖子（各 4 条）。<br>
+        3. 事件类型随之少一项：不再有 <code>link_parse</code>，本页共 9 类事件。<br><br>
+        <b>数据是构造的</b><br>
+        12 条帖子的标题、正文、作者名、noteId、URL 全部人工构造，<b>不是真实小红书内容，也不是任何抓取结果</b>，不得作为真实数据引用或对比。<br><br>
+        <b>算法口径不等于线上插件（R1 / D12=P1）</b><br>
+        本页用<b>真 BM25</b>（有 IDF、有文档长度归一化，k1=1.2、b=0.75）。工作区的 <code>xhs-rag</code> 插件用的是自制 TF 变体（无 IDF、无长度归一化，标题 ×3，另乘覆盖率因子）。
+        <b>本页排序结论不能用来推断 xhs-rag 插件的线上表现。</b>
+      </span></span>
+    </h1>
+    <p class="keynote" style="margin:8px 0 0">
+      <b>虚构构造数据</b> · 全程离线、<b>不发任何网络请求</b> · 本页用真 BM25，<b>与 xhs-rag 插件算法不同，结论不可外推</b> —— 每条细节点标题旁的 <b>i</b> 看说明。
+    </p>
+
+    <div class="strip" id="stageStrip" aria-label="环节一览"></div>
+
+    <details id="legend">
+      <summary>🔎 真实性图例：✅ 真实 / 🔶 模拟 各代表什么（点开即记一次 <code>sim_badge_view</code>）</summary>
+      <ul class="legend-list">
+        <li><span class="badge real">✅ 真实</span> 这一环节的结果是页面<b>当场算出来的</b>：用公式、规则或字符串处理得到，你可以人工复算，刷新后结果不变。</li>
+        <li><span class="badge sim">🔶 模拟</span> <b>这一环节的结果是预置的，不是计算出来的。</b>它只是把真实系统里那一步的输入输出摆在页面上。</li>
+        <li>本页共 <b>7 个环节</b>：<b>5 个 ✅ 真实</b>（③ 分块、④ 分词、⑤ 建索引、⑦ 打分、⑧ Prompt）、<b>2 个 🔶 模拟</b>（⑥ 检索词构建、⑨ 回答生成）。每个环节标题旁都有对应标记。</li>
+        <li>本页<b>没有</b>链接识别与抓取环节：数据是直接构造好的，页面上任何与「抓取」有关的表述都只是背景说明。</li>
+      </ul>
+    </details>
+
+    <p class="small muted" id="dataLine" style="margin-top:8px"></p>
+  </header>
+
+  <!-- ===================== 双栏主体 ===================== -->
+  <div class="layout">
+
+    <!-- ---------- 左栏：入库侧（预处理） ---------- -->
+    <div class="col">
+      <div class="colhead"><span>入库侧 · 预处理</span><span class="sub">数据 → 分块 → 分词 → 索引</span></div>
+
+      <!-- 数据源（不是环节：已构造好的帖子数据） -->
+      <section class="card" id="secData">
+        <h2>数据源（构造的帖子，等价于「已解析入库」的结果）
+          <span class="info" tabindex="0" role="button" aria-label="数据源说明">i<span class="tip left">
+            <b>这批数据是构造的，不是抓取的</b><br>
+            按最新要求，本页删去了「链接识别」与「抓取与解析」两个环节；无法做真实抓取，所以直接使用构造好的帖子数据，当作已经解析并入库的结果。<br><br>
+            字段沿用 PRD 4.5 的数据模型：<code>noteId / url / title / text / author / usable / degraded / importedAt</code>，另加 <code>theme</code> 仅用于按主题分组展示（不参与打分）。<br><br>
+            两点口径：<br>
+            • <b>title 不参与打分</b>，搜索结果里的文档 D 是 chunk 文本、单字段（不做 BM25F），标题命中只在结果层展示。<br>
+            • 其中 2 条是<b>内容不完整</b>的（图片型正文过短、风控页），但它们<b>照常分块、照常被检索到</b>，命中的时候会带标记 —— 这是 PRD 4.5 与 xhs-rag 一致的行为。
+          </span></span>
+          <span class="badge neutral" id="dataBadge">12 条构造数据</span>
+        </h2>
+        <p class="keynote">12 条构造帖子 · 3 个主题 · 10 条可用 / 2 条内容不完整 —— <b>不是真实小红书内容，也不是抓取结果</b>。</p>
+        <div id="fetchSummary" class="row tight"></div>
+        <div id="noteCards"></div>
+      </section>
+
+      <!-- ③ 分块 -->
+      <section class="card" id="secChunk">
+        <h2><span class="num">③</span> 分块 Chunking
+          <span class="info" tabindex="0" role="button" aria-label="分块说明">i<span class="tip left">
+            <b>纯字符串处理（PRD 4.2 ③ / FR-4），所以标 ✅ 真实。</b><br>
+            切点优先级：段落换行 &gt; 句末标点（。！？；）&gt; 逗号 &gt; 硬切到 chunkSize。<br><br>
+            <b>参数不写死，由测量推导</b>：先量出 12 条正文长度的中位数，<code>chunkSize = round(中位数 × 0.5)</code>、<code>overlap = round(chunkSize × 0.2)</code>。
+            约束：chunkSize 夹到 [40, 2000]，overlap 夹到 [0, chunkSize-1]；非法输入会被夹取并提示，不静默接受（B14）。<br><br>
+            <b>游标必须始终前进</b>（nextStart &gt; start），否则参数极端时页面会卡死。<br><br>
+            <b>保真约束（AC-4）</b>：把每个 chunk 去掉与上一块重叠的部分再顺序拼接，必须<b>逐字等于原文</b>。页面上的「保真校验」是当场算的，不是写死的结论。<br><br>
+            降级（内容不完整）的笔记<b>照常参与分块</b>，并会说明「这条内容不完整，但同样会被检索到」。
+          </span></span>
+          <span data-badge="3"></span>
+        </h2>
+        <div class="row">
+          <label class="small">chunkSize <input type="number" id="csInput" min="1" step="1"></label>
+          <label class="small">overlap <input type="number" id="ovInput" min="0" step="1"></label>
+          <button class="btn" id="applyParamsBtn">应用参数</button>
+          <button class="btn" id="resetParamsBtn">回到测量推导值</button>
+        </div>
+        <div id="paramInfo"></div>
+        <div id="chunkSummary"></div>
+        <div id="chunkList"></div>
+      </section>
+
+      <!-- ④ 分词 -->
+      <section class="card" id="secToken">
+        <h2><span class="num">④</span> 分词
+          <span class="info" tabindex="0" role="button" aria-label="分词说明">i<span class="tip left">
+            <b>零依赖分词，规则与 xhs-rag/search.js:24-49 一致（PRD 4.2 ④ / 交接说明 §3.2），所以标 ✅ 真实。</b><br>
+            1. 先整段转小写；<br>
+            2. 拉丁词与数字按 <code>[a-z0-9_]+</code> 切出，只保留长度 ≥ 2 的；<br>
+            3. CJK 连续段：逐字 push 单字，并在与下一个字同属 CJK 时 push 这个<b>相邻双字</b>（bigram）。<br><br>
+            为什么用 bigram：中文没有词边界，「云南」「粉底」这类双字比两个孤立单字更能表达检索意图，是零依赖下最接近分词的近似。<br><br>
+            返回值<b>保留重复</b>（重复即出现次数），但查询侧必须先按 token 去重。emoji、<code>#</code>、标点、空格天然被忽略，也不会因此报错（B8）。<br><br>
+            6 条测试向量的逐条核对在页面底部「实现自检」里当场复算。
+          </span></span>
+          <span data-badge="4"></span>
+        </h2>
+        <div class="grid grid2">
+          <div class="box">
+            <h3 style="margin-top:0">查询侧：当前 query 的分词</h3>
+            <div id="queryTokens"></div>
+          </div>
+          <div class="box">
+            <h3 style="margin-top:0">语料侧：任意 chunk 的分词</h3>
+            <div class="row tight"><select id="chunkPicker" style="max-width:100%"></select></div>
+            <div id="chunkTokens"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ 建索引 -->
+      <section class="card" id="secIndex">
+        <h2><span class="num">⑤</span> 建索引
+          <span class="info" tabindex="0" role="button" aria-label="建索引说明">i<span class="tip left">
+            <b>全量语料在页面内，可精确计算（PRD 4.2 ⑤ / FR-5），所以标 ✅ 真实。</b><br>
+            口径（交接说明 §3.4）：<br>
+            • <code>N</code> = <b>chunk 总数</b>（不是笔记数）<br>
+            • <code>|D|</code> = 该 chunk 的<b>字符数</b>（不是 token 数）<br>
+            • <code>tf(t,D)</code> = token t 在 chunk D 中的出现次数<br>
+            • <code>df(t)</code> = <b>含 t 的 chunk 数</b><br>
+            • <code>avgdl = (Σ|D|) / N</code>；词典 = 所有 chunk 的 token 去重集合<br><br>
+            <b>别把 Σ|D| 和原文总字数搞混</b>：chunk 之间有 overlap，同一段字符会被相邻两块各算一次，所以 Σ|D| 比正文总字数大。这是口径本身如此，不是重复计数 bug。
+          </span></span>
+          <span data-badge="5"></span>
+        </h2>
+        <div id="indexStats"></div>
+        <div id="indexTokens"></div>
+      </section>
+    </div>
+
+    <!-- ---------- 右栏：检索侧 ---------- -->
+    <div class="col">
+      <div class="colhead"><span>检索侧 · 问答</span><span class="sub">query → 检索词 → 打分 → prompt → 回答</span></div>
+
+      <!-- 检索输入（不是环节） -->
+      <section class="card" id="secQuery">
+        <h2>检索输入
+          <span class="info" tabindex="0" role="button" aria-label="检索输入说明">i<span class="tip right">
+            <b>预置 query（FR-13）</b><br>
+            5 个按钮来自数据的 <code>presetQueries</code>，点一下<b>只填入输入框、不自动执行</b>，保留你改词的机会。<br><br>
+            <b>边界复现</b><br>
+            下面两个按钮来自数据的 <code>boundaryReproduction</code>，不属于那 5 条预置：<br>
+            • <code>露营</code> —— 露/营 二字在整个语料里刻意不出现，用来演示<b>明确的空态</b>（不是白屏、也不是 0 分结果列表）。<br>
+            • <code>避雷</code> —— 这个词只出现在那条「内容不完整」的笔记正文里，用来复现 B6「命中的全部是降级笔记」。<br><br>
+            <b>计算期间按钮会禁用（B15 / AC-14）</b><br>
+            真实计算耗时不到 1 毫秒；为了让「计算期间按钮禁用、连续检索结果被覆盖」这条验收标准肉眼可见，页面在渲染前主动让出主线程约 0.2 秒。
+          </span></span>
+        </h2>
+        <div class="row tight">
+          <span class="small muted">预置 query：</span>
+          <span id="presetBtns" class="row tight" style="margin:0"></span>
+        </div>
+        <div class="row tight">
+          <span class="small muted">边界复现：</span>
+          <button class="btn preset" data-fill="露营" title="FR-8：真空态">露营</button>
+          <button class="btn preset" data-fill="避雷" title="B6 / AC-11：命中全为内容不完整的笔记">避雷</button>
+        </div>
+        <div class="row">
+          <input type="text" id="queryInput" placeholder="输入检索词，例如：云南旅游" style="min-width:220px;flex:1" value="云南旅游">
+          <button class="btn primary" id="searchBtn">检索</button>
+          <span id="searchStatus" class="small muted"></span>
+        </div>
+      </section>
+
+      <!-- ⑥ 检索词构建 -->
+      <section class="card" id="secTerms">
+        <h2><span class="num">⑥</span> 检索词构建
+          <span class="info" tabindex="0" role="button" aria-label="检索词构建说明">i<span class="tip right">
+            <b>真实系统里这一步是生成任务、要过 LLM（知识库文档 337–361 行），本页用「规则 + 预置映射」近似，所以标 🔶 模拟。</b><br><br>
+            三分类的含义：核心词（必须匹配）/ 扩展词（建议匹配）/ 排除词（必须过滤）。<br>
+            本页规则：核心词 = query 里长度 ≥ 2 的 token；扩展词 = 预置同义词表命中的词（没有映射时<b>显式说明</b>，不留白、也不假装是模型输出）；排除词 = 命中通用排除表的词。<br><br>
+            <b>为什么必须写明「不参与打分」（D11 / 评审 Blocker #1）</b><br>
+            ⑥ 与 ⑦ 之间<b>没有数据流</b>：打分只用用户 query 的原词分词结果。一旦让模拟环节的产出进入打分，⑦ 就不能再标「✅ 真实」，整页的真实性结论都会塌。
+          </span></span>
+          <span data-badge="6"></span>
+        </h2>
+        <p class="keynote">本页展示的三分类<b>不参与打分</b>；⑦ 只用 query 的原词分词打分。（真实系统里它会影响检索结果。）</p>
+        <div id="termsBox" class="grid grid3"></div>
+      </section>
+
+      <!-- ⑦ 打分与排序 -->
+      <section class="card" id="secScore">
+        <h2><span class="num">⑦</span> 打分与排序（真 BM25）
+          <span class="info" tabindex="0" role="button" aria-label="BM25 说明">i<span class="tip right">
+            <b>真算 BM25（PRD 4.2 ⑦ / FR-7），所以标 ✅ 真实。</b><br>
+            <code>IDF(t) = ln(1 + (N - df(t) + 0.5) / (df(t) + 0.5))</code> —— 平滑 IDF，恒为正；df=0 的查询词直接跳过。<br>
+            <code>score(D,Q) = Σ_{t∈Q} IDF(t) × tf(t,D)×(k1+1) / (tf(t,D) + k1×(1 - b + b×|D|/avgdl))</code><br>
+            <code>k1 = 1.2</code>、<code>b = 0.75</code>、<code>|D|</code> = chunk 字符数、<code>N</code> = chunk 总数。<br><br>
+            <b>文档 D = chunk 文本，单字段；标题不参与打分</b>（不做 BM25F），标题命中只在结果层作辅助展示。<br><br>
+            <b>两遍策略（D13，照搬 xhs-rag）</b><br>
+            • 精确遍：只用多字 token（中文 bigram、拉丁词）；<br>
+            • 放宽遍：<b>只在精确遍完全无命中、且查询里确实还有单字可放宽时</b>才执行（加入 CJK 单字、排除虚字表），结果标注「宽松命中、相关度较低」；<br>
+            • 两遍都命中时以精确遍为准 —— 宁可少给几条，也不让单字噪声淹没真正的匹配。<br><br>
+            <b>排序与确定性（AC-6）</b>：主序 score 降序，次序 chunkId 字典序升序。tie-break 必须有，否则同一 query 两次可能给出不同顺序。<br><br>
+            <b>与 xhs-rag 的算法不同（R1 / D12=P1）</b>：插件是自制 TF 变体（无 IDF、无长度归一化、标题 ×3，另乘覆盖率因子），<b>本页排序结论不可外推</b>。
+          </span></span>
+          <span data-badge="7"></span>
+        </h2>
+        <div id="results"></div>
+      </section>
+
+      <!-- ⑧ Prompt 组装 -->
+      <section class="card" id="secPrompt">
+        <h2><span class="num">⑧</span> Prompt 组装
+          <span class="info" tabindex="0" role="button" aria-label="Prompt 说明">i<span class="tip right">
+            <b>纯字符串拼接（PRD 4.2 ⑧ / FR-9），所以标 ✅ 真实。</b><br>
+            输出顺序固定：<br>
+            1. 系统提示（说明角色，以及「只用参考内容回答」的要求）；<br>
+            2. 参考内容块：<b>按检索结果顺序</b>逐条列出，每条含 出处（标题 / 作者 / URL）+ chunk 文本；<br>
+            3. 用户问题。<br><br>
+            <b>无命中分支必须写</b>（对应知识库文档第 512 行）：prompt 里要出现明确指令，告知模型「本次没有检索到相关内容，请如实说明没找到，不要编造」，<b>不允许留空</b>。
+          </span></span>
+          <span data-badge="8"></span>
+        </h2>
+        <div id="promptBox"></div>
+      </section>
+
+      <!-- ⑨ 回答生成 -->
+      <section class="card" id="secAnswer">
+        <h2><span class="num">⑨</span> 回答生成与出处
+          <span class="info" tabindex="0" role="button" aria-label="回答说明">i<span class="tip right">
+            <b>🔶 模拟生成（PRD 4.2 ⑨ / FR-10，D14 决定保留）。</b><br>
+            回答由检索命中的片段按固定模板拼接，<b>不是任何模型产出</b>，也没有调用任何模型。<br><br>
+            三条硬约束：<br>
+            • 区域顶部必须标「🔶 模拟生成」；<br>
+            • <b>禁止显示任何置信度 / 相似度 / 概率数字</b> —— 没有真算，显示了就是编造；<br>
+            • 每条引用附 标题 + 作者 + URL + 命中片段，且可点击回到所属笔记卡片；无命中时只回答「没有找到相关内容」，不编造。
+          </span></span>
+          <span data-badge="9"></span>
+        </h2>
+        <div id="answerBox"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===================== 附页：理解自测 ===================== -->
+  <section class="card" id="secQuiz" style="margin-top:14px">
+    <h2>理解自测（G3 的记录工具，<b>不属于</b>环节）
+      <span class="info" tabindex="0" role="button" aria-label="自测说明">i<span class="tip left">
+        <b>题面是演示用示例</b><br>
+        PRD 的 Q6（谁出题、出几题、具体题面）尚未定案，AC-17 因此还不可执行。这里放 5 道示例题，只为让 <code>quiz_submit</code> 事件可被触发、可被导出（FR-12 / AC-16）。<br><br>
+        <b>样本量说明（PRD R4）</b>：3 人 × 5 题只能作为方向性信号，<b>不能</b>当作教学效果的证据。
+      </span></span>
+    </h2>
+    <div id="quizBox"></div>
+    <div id="quizSummary" class="small muted"></div>
+  </section>
+
+  <!-- ===================== 附页：事件面板 ===================== -->
+  <section class="card" id="secEvents">
+    <h2>事件记录面板 <span class="badge neutral">FR-12 · 不属于环节</span>
+      <span class="info" tabindex="0" role="button" aria-label="事件说明">i<span class="tip left">
+        按时间倒序记录，刷新即清零（<b>不持久化</b>，B10 / B13：同时开两个标签页互不干扰）。<br><br>
+        本页共 <b>9 类事件</b>：PRD 第 6 节列了 10 类，其中 <code>link_parse</code> 随「① 链接识别」一起删掉了，不再适用。<br><br>
+        导出的是<b>本次页面真实触发过</b>的事件；导出按钮会先把 <code>export_events</code> 写进事件流再序列化，所以导出文件里一定包含它。别把「没触发」当成「已覆盖」。
+      </span></span>
+    </h2>
+    <div class="row">
+      <button class="btn primary" id="exportBtn">导出事件 JSON</button>
+      <button class="btn" id="clearBtn">清空事件</button>
+      <span class="small muted" id="eventCount"></span>
+    </div>
+    <div id="eventCoverage"></div>
+    <div id="eventList"></div>
+  </section>
+
+  <!-- ===================== 附页：实现自检 ===================== -->
+  <section class="card" id="secSelfCheck">
+    <h2>附录：实现自检 <span class="badge neutral">不属于环节</span>
+      <span class="info" tabindex="0" role="button" aria-label="自检说明">i<span class="tip left">
+        交接说明 §9 把 AC-4（保真拼接）、AC-5（df / avgdl 可核算）、AC-6（分数可核算 + 两次一致）、§3.2 的分词测试向量划给「实现者自测」。<br><br>
+        这里把它们做成<b>页面加载时当场复算</b>的检查表：每一条都是现场跑出来的，不是写死的对勾。任何一条挂了，都会红字显示 —— 包括本页自己的数据预期（预置 query 的结果态、宽松命中、全降级命中、参数推导）。
+      </span></span>
+    </h2>
+    <div id="selfCheckBox"></div>
+  </section>
+
+  <noscript><div class="card box warn" style="margin-top:14px">本页面依赖 JavaScript 运行（所有逻辑都在本地执行）。请启用 JavaScript 后重新打开。</div></noscript>
+
+  <footer>
+    单文件 · 自包含 · 离线可用 · 不发网络请求 —
+    7 个环节（5 ✅ 真实 / 2 🔶 模拟）· 数据为构造的 3 主题帖子 · 规格来源 <code>docs/prd/02-rag-web-demo-PRD.md</code> v0.3 与 <code>docs/prd/05-实现交接说明.md</code>
+  </footer>
+</div>
+
+<!-- ===================== 内嵌构造数据（3 主题 × 4 条） ===================== -->
+<script id="rag-data">
+/* 只把 notes[] 当作语料；dataset 是说明性元数据（含 themes / presetQueries / boundaryReproduction），
+   不参与 N / df / avgdl，否则会污染统计口径。 */
+const MOCK_DATA = {
+  "version": 2,
+  "savedAt": "2026-10-06T03:40:00.000Z",
+  "dataset": {
+    "name": "小红书三主题构造数据（云南旅游 / 上海餐厅 / 敏感肌油皮粉底液）",
+    "fictional": true,
+    "disclaimer": "本文件所有帖子标题、正文、作者名、noteId 与 URL 均为人工构造，仅用于演示 RAG 流程。它们不是真实的小红书内容，也不是任何真实抓取结果 —— 本次页面不包含链接识别与抓取环节，数据是直接构造好后当作「已入库的解析结果」使用的。不得作为真实数据引用或对比。",
+    "schemaNote": "字段沿用 PRD 4.5 的数据模型：noteId / url / title / text / author / degraded / usable / importedAt；另加 theme 字段，仅用于按主题分组展示，不参与打分。title 不参与打分（D = chunk 文本，单字段）。",
+    "themes": [
+      { "id": "yunnan", "name": "云南旅游", "noteCount": 4 },
+      { "id": "shanghai", "name": "上海餐厅", "noteCount": 4 },
+      { "id": "makeup", "name": "敏感肌油皮粉底液", "noteCount": 4 }
+    ],
+    "noteCount": 12,
+    "usableCount": 10,
+    "degradedCount": 2,
+    "degradedCases": [
+      {
+        "noteId": "66f0a1b2000000001300d004",
+        "case": "图片型笔记（正文过短）",
+        "why": "正文只有「看图👉」，共 4 字符，低于可用阈值 40。构造这条是为了保留「降级笔记照常入库、照常被检索到」的教学点（PRD 4.5）。"
+      },
+      {
+        "noteId": "66f0a1b2000000001300d008",
+        "case": "风控/登录页（字段含风控标记）",
+        "why": "正文字段里命中「请打开小红书App」，内容不可信。构造这条是为了保留 B6「命中的全部是降级笔记」的复现路径（query 用「避雷」）。"
+      }
+    ],
+    "presetQueries": [
+      { "query": "云南旅游", "expect": "正常命中多篇（云南出现在 3 篇正文里），用于演示排序与分项贡献" },
+      { "query": "上海餐厅", "expect": "正常命中多篇（上海 / 餐厅 两个词都有命中），用于演示双字词命中的叠加" },
+      { "query": "粉底液", "expect": "命中美妆主题 4 篇，用于演示同一主题内的排序" },
+      { "query": "的", "expect": "纯虚字查询：分词后有区分度的 token 为 0，应返回空结果而不是满屏噪声" },
+      { "query": "雪山索道", "expect": "边界用例：多字词全不命中，仅靠单字「道」兜底命中一篇不相关笔记，用于演示「宽松命中相关度低」" }
+    ],
+    "boundaryReproduction": [
+      {
+        "case": "命中结果全部是「内容不完整」的笔记（PRD 的 B6 / AC-11）",
+        "query": "避雷",
+        "why": "双字词「避雷」只出现在内容不完整的 66f0a1b2000000001300d008（风控页）正文里，精确遍只会命中这一条，因此可以复现「命中全为降级笔记」的顶部提示。"
+      },
+      {
+        "case": "完全无命中，走空态（FR-8 第 2 条）",
+        "query": "露营",
+        "why": "「露」「营」二字在整个语料里刻意不出现，用来演示明确的空态文案（非白屏、非 0 分列表占位）。"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "noteId": "66f0a1b2000000001300d001",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d001",
+      "title": "大理洱海环湖一日｜骑行路线和避坑点",
+      "text": "云南大理洱海一圈大概 130 公里，我这次只骑了东岸一段。早上从才村码头出发，先到龙龛码头看日出，再沿湖骑到喜洲，中间在磻溪村拍了几张照片。租车建议在古城里租，电瓶车一天 60 元左右，比景区门口便宜。防晒一定要做足，云南的紫外线比想象中强，我第一天脖子就晒红了。中午在喜洲吃破酥粑粑和凉鸡米线。下午湖边的风很大，帽子和眼镜要拿稳。回程别赶末班车，公交下午六点以后就很少了。",
+      "author": "阿May在路上",
+      "theme": "yunnan",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:10:01.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d002",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d002",
+      "title": "丽江古城两日｜住哪、吃什么、怎么避开人挤人",
+      "text": "云南丽江古城分成大研、束河、白沙三片。第一次来我建议住束河，安静，走路十分钟就能吃饭。大研晚上人多，酒吧街吵到十二点，睡眠浅的别住靠河那一排。白天可以去白沙看壁画，人少很多。吃的话，腊排骨火锅配鸡豆凉粉，早上来一碗米灌肠。古城里卖的东西大同小异，银器和普洱茶要砍价，别在景区门口买。石板路推行李箱很难走，尽量背双肩包。晚上八点以后四方街人会少一些，拍照更好看。",
+      "author": "慢速旅行者",
+      "theme": "yunnan",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:10:04.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d003",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d003",
+      "title": "香格里拉三天｜高反、松赞林寺和普达措",
+      "text": "云南香格里拉海拔 3300 米左右，从丽江上来要先适应一天。我第一天什么也没干，就在独克宗古城慢慢走，喝了两壶酥油茶。第二天去松赞林寺，早上八点前人很少，光线也好。普达措的门票和环保车要提前买，里面的栈道走完大概三小时，走慢一点，喘就停下来。高反药提前一天吃，别硬扛。晚上不要洗澡，容易感冒。藏餐里的牦牛肉干可以带一点，青稞饼趁热吃。回丽江的大巴要提前一天买票。",
+      "author": "高原小王",
+      "theme": "yunnan",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:10:07.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d004",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d004",
+      "title": "云南旅行照片合集｜这次拍了 200 张",
+      "text": "看图👉",
+      "author": "阿May在路上",
+      "theme": "yunnan",
+      "degraded": [
+        "正文仅 4 字符，达不到可用阈值 40；该笔记很可能是图片型（正文只有「看图」之类），纯文本抓取无法还原其内容"
+      ],
+      "usable": false,
+      "importedAt": "2026-10-06T03:10:10.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d005",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d005",
+      "title": "上海本帮菜｜人均 100 左右的三家小馆",
+      "text": "上海本帮菜餐厅不必只去老字号。第一家开在虹口，红烧肉甜咸平衡，配一碗菜饭正好，人均 90。第二家在黄浦，响油鳝糊和油爆虾做得很干净，晚餐要提前三天订位。第三家在静安，做的是家常菜，腌笃鲜只有春天有，汤里用咸肉和鲜肉一起炖。点菜顺序建议先点一个浓油赤酱的主菜，再配两个清淡的素菜，最后上一份甜点。中午去比晚上便宜，很多餐厅有午市套餐。",
+      "author": "上海吃饭笔记",
+      "theme": "shanghai",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:20:01.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d006",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d006",
+      "title": "上海日料｜Omakase 之外的平价选择",
+      "text": "上海日料不一定要吃人均五百的 Omakase。我常去的是古北一家居酒屋，烤串和关东煮都稳定，人均 120。另外一家在静安寺附近，做海鲜丼，午市 88 一份，鱼生新鲜度不错。想吃天妇罗的话，长宁有家专门店，中午的天妇罗定食 78，油温控制得很好。点单建议避开周末晚上，人多出餐慢。清酒按杯点不划算，两个人可以点一小瓶。生食要注意，肠胃弱的人尽量选熟食。",
+      "author": "深夜食堂观察员",
+      "theme": "shanghai",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:20:04.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d007",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d007",
+      "title": "上海咖啡与早午餐｜周末不排队的时段",
+      "text": "上海的早午餐餐厅周末普遍要排队。我的经验是十点半之前到，或者下午一点半以后再去，中间那段时间最挤。武康路一带网红店多，但出品稳定的一般藏在弄堂里，价格反而便宜。班尼迪克蛋 68 左右算正常，超过 100 就没必要。咖啡我更喜欢中浅烘的手冲，配可颂刚好。如果想安静办公，找带插座的社区店，工作日人少。注意很多店周一休息，出发前先查一下店休日。",
+      "author": "咖啡因驱动",
+      "theme": "shanghai",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:20:07.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d008",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d008",
+      "title": "上海餐厅避雷清单｜10 家我踩过的坑",
+      "text": "上海餐厅避雷清单｜10 家我踩过的坑。外滩某家本帮菜、南京西路某家日料、某网红早午餐等，请打开小红书App查看完整内容",
+      "author": "夜行动物",
+      "theme": "shanghai",
+      "degraded": [
+        "页面疑似风控或登录页（命中「请打开小红书App」），内容不可信"
+      ],
+      "usable": false,
+      "importedAt": "2026-10-06T03:20:10.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d009",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d009",
+      "title": "敏感肌油皮粉底液｜我用空瓶的 3 支",
+      "text": "油皮加敏感肌选粉底液很矛盾，控油强的容易拔干泛红，温和的又脱妆。我用了半年，最后留下三支。第一支是持妆型，早上上妆到下午四点只是鼻翼轻微出油，用纸巾按压就好，不要补粉。第二支是轻薄型，遮盖力一般，适合上班，需要配合遮瑕。第三支是药妆线，成分表干净，换季泛红时只能用它。上妆前先做基础保湿，等三分钟再上粉底，会服帖很多。卸妆一定要用温和的卸妆油，别用卸妆水反复擦。",
+      "author": "成分党小K",
+      "theme": "makeup",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:30:01.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d010",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d010",
+      "title": "油皮底妆不脱妆｜定妆顺序比粉底更重要",
+      "text": "很多人以为换一瓶粉底液就能解决脱妆，其实定妆顺序影响更大。我的顺序是：保湿、防晒、妆前乳（只涂出油区）、粉底液、少量散粉按压，最后定妆喷雾。散粉不要全脸大面积扫，T 区按压，脸颊轻轻带过。中午出油用纸巾按压，不要用吸油纸来回擦，会把底妆一起带走。夏天把定妆喷雾放进冰箱，上脸更舒服。粉底液用量一颗黄豆就够，多了必然卡粉。",
+      "author": "底妆研究所",
+      "theme": "makeup",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:30:04.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d011",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d011",
+      "title": "粉底液色号怎么选｜黄皮不踩雷的方法",
+      "text": "选粉底液色号最容易踩的坑是听别人推荐。正确做法是先确定自己的底色偏黄还是偏粉，再看明度。去专柜试色要涂在下颌线，走到自然光下看，不要信店里的灯光。试完别急着买，等两小时看氧化程度，有的粉底液会暗半个色号。黄皮尽量选带一点暖调的，太白的会显得假面。脖子和脸有色差的话，选贴近脖子的色号更自然。网购可以先买分装，测三支再决定。",
+      "author": "试色三千次",
+      "theme": "makeup",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:30:07.000Z"
+    },
+    {
+      "noteId": "66f0a1b2000000001300d012",
+      "url": "https://www.xiaohongshu.com/explore/66f0a1b2000000001300d012",
+      "title": "敏感肌换季急救｜别急着换全套",
+      "text": "换季泛红刺痛的时候，最忌讳把水乳粉底液全套换新。我的做法是先停用所有含酒精和酸类的东西，只留温和洁面、保湿霜和一支物理防晒。泛红严重时用凉毛巾敷五分钟，别用冰。三天后如果稳定，再逐个加回原来的产品，一次只加一样，加完观察两天。粉底液换成成分更简单的那支，遮盖力差一点没关系。如果一周没有好转，就别自己折腾了，直接去看皮肤科。",
+      "author": "皮肤科门口常客",
+      "theme": "makeup",
+      "degraded": [],
+      "usable": true,
+      "importedAt": "2026-10-06T03:30:10.000Z"
+    }
+  ]
+};
+</script>
+
+<!-- ===================== 纯逻辑核心（不依赖 DOM） ===================== -->
+<script id="rag-core">
+const RAGCore = (function () {
+  'use strict';
+
+  /* ---------------- 常量表（交接说明 §5） ---------------- */
+  var K1 = 1.2;                   /* 知识库文档 209 行 */
+  var B = 0.75;                   /* 知识库文档 213 行 */
+  var TOP_K = 5;                  /* 与 xhs-rag 的 maxResults 默认一致（index.js:409） */
+  var SNIPPET_PADDING = 60;       /* 抄 search.js:76 */
+  var CHUNK_SIZE_MIN = 40;
+  var CHUNK_SIZE_MAX = 2000;
+  var CHUNK_SIZE_RATIO = 0.5;     /* PRD 4.2 ③：chunkSize = round(正文中位长度 × 0.5) */
+  var OVERLAP_RATIO = 0.2;        /* PRD 4.2 ③：overlap = round(chunkSize × 0.2) */
+  var NOTE_CHAR_LIMIT = 2000;     /* B5 默认：超出截断 + 提示 */
+  var QUERY_CHAR_LIMIT = 200;     /* B4 默认：截断到 200 字符 + 提示 */
+
+  var RE_CJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
+  var RE_CJK_SPLIT = /[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/;
+  var RE_LATIN_WORD = /[a-z0-9_]+/g;
+
+  /* 虚字表：抄 search.js:93-97，放宽遍用它把单字里没有检索意图的字筛掉 */
+  var CJK_STOPWORDS = new Set(Array.from(
+    '的了吧呢吗啊呀哦嗯是在有和与及或也就都还很太更最把被给让使对从向往上下里中'
+    + '这个那个这些那些一个什么怎么为什么可以能够因为所以但是如果那么虽然不过然后而且'
+    + '我你他她它们自己之其于以为所被把着过起来出来进去下去不过还再又已经正在将要想说'
+  ));
+
+  function nowMs() {
+    return (typeof performance !== 'undefined' && performance && typeof performance.now === 'function')
+      ? performance.now() : Date.now();
+  }
+  function round3(v) { return Math.round(v * 1000) / 1000; }
+  function round4(v) { return Math.round(v * 10000) / 10000; }
+
+  /* ---------------- 分词（✅ 真实，交接说明 §3.2） ---------------- */
+  function tokenize(text) {
+    if (typeof text !== 'string' || text.length === 0) return [];
+    var lowered = text.toLowerCase();
+    var tokens = [];
+    var latin = lowered.match(RE_LATIN_WORD);
+    if (latin) {
+      for (var i = 0; i < latin.length; i += 1) {
+        if (latin[i].length >= 2) tokens.push(latin[i]);
+      }
+    }
+    var runs = lowered.split(RE_CJK_SPLIT);
+    for (var r = 0; r < runs.length; r += 1) {
+      var run = runs[r];
+      if (!run) continue;
+      var chars = Array.from(run);
+      for (var c = 0; c < chars.length; c += 1) {
+        if (!RE_CJK.test(chars[c])) continue;
+        tokens.push(chars[c]);
+        if (c + 1 < chars.length && RE_CJK.test(chars[c + 1])) tokens.push(chars[c] + chars[c + 1]);
+      }
+    }
+    return tokens;
+  }
+  function isPreciseToken(token) { return Array.from(token).length > 1; }
+  function isDiscriminative(token) { return isPreciseToken(token) || !CJK_STOPWORDS.has(token); }
+  function queryTokensOf(text) { return Array.from(new Set(tokenize(text))); }
+
+  /* ---------------- 分块（✅ 真实，交接说明 §3.3） ---------------- */
+  function deriveChunkParams(notes) {
+    var lens = (notes || []).map(function (n) { return String((n && n.text) || '').length; }).sort(function (a, b) { return a - b; });
+    if (!lens.length) return { sampleSize: 0, min: 0, max: 0, median: 0, chunkSize: CHUNK_SIZE_MIN, overlap: 0 };
+    var mid = lens.length >> 1;
+    var median = lens.length % 2 ? lens[mid] : (lens[mid - 1] + lens[mid]) / 2;
+    var chunkSize = Math.round(median * CHUNK_SIZE_RATIO);
+    return {
+      sampleSize: lens.length, min: lens[0], max: lens[lens.length - 1],
+      median: median, chunkSize: chunkSize, overlap: Math.round(chunkSize * OVERLAP_RATIO)
+    };
+  }
+  function isBlankInput(value) {
+    return value === null || value === undefined || String(value).trim() === '';
+  }
+  function normaliseParams(chunkSizeRaw, overlapRaw, defaults) {
+    var messages = [];
+    var def = defaults || { chunkSize: CHUNK_SIZE_MIN, overlap: 0 };
+    var cs = isBlankInput(chunkSizeRaw) ? NaN : Number(chunkSizeRaw);
+    if (!isFinite(cs)) { messages.push('chunkSize 输入非法（' + String(chunkSizeRaw) + '），已回退到默认值 ' + def.chunkSize); cs = def.chunkSize; }
+    cs = Math.round(cs);
+    if (cs < CHUNK_SIZE_MIN) { messages.push('chunkSize=' + cs + ' 低于下限 ' + CHUNK_SIZE_MIN + '，已夹取到 ' + CHUNK_SIZE_MIN); cs = CHUNK_SIZE_MIN; }
+    if (cs > CHUNK_SIZE_MAX) { messages.push('chunkSize=' + cs + ' 超过上限 ' + CHUNK_SIZE_MAX + '，已夹取到 ' + CHUNK_SIZE_MAX); cs = CHUNK_SIZE_MAX; }
+    var ov = isBlankInput(overlapRaw) ? NaN : Number(overlapRaw);
+    if (!isFinite(ov)) { messages.push('overlap 输入非法（' + String(overlapRaw) + '），已回退到 0'); ov = 0; }
+    ov = Math.round(ov);
+    if (ov < 0) { messages.push('overlap=' + ov + ' 不能为负，已夹取到 0'); ov = 0; }
+    if (ov > cs - 1) { messages.push('overlap=' + ov + ' ≥ chunkSize(' + cs + ')，已夹取到 chunkSize-1 = ' + (cs - 1) + '（B14：夹取后游标仍然前进，页面不会卡死）'); ov = cs - 1; }
+    return { chunkSize: cs, overlap: ov, messages: messages };
+  }
+  function findSplitPoint(text, start, hardEnd, minLen) {
+    var groups = ['\n', '。！？；!?;', '，、,'];
+    var min = start + minLen;
+    for (var g = 0; g < groups.length; g += 1) {
+      var set = groups[g];
+      for (var i = hardEnd - 1; i >= min; i -= 1) {
+        if (set.indexOf(text[i]) !== -1) return i + 1;   /* 标点归到前一块末尾 */
+      }
+    }
+    return hardEnd;
+  }
+  function chunkText(text, chunkSize, overlap) {
+    var out = [];
+    if (!text) return out;
+    var minLen = Math.max(1, Math.floor(chunkSize * 0.5));
+    var start = 0;
+    for (;;) {
+      var hardEnd = Math.min(start + chunkSize, text.length);
+      var end;
+      if (hardEnd >= text.length) {
+        end = text.length;
+      } else {
+        end = findSplitPoint(text, start, hardEnd, minLen);
+        if (end <= start) end = hardEnd;
+      }
+      out.push({ index: out.length, start: start, end: end, text: text.slice(start, end) });
+      if (end >= text.length) break;
+      var next = end - overlap;
+      if (next <= start) next = start + 1;      /* B14：游标必须始终前进 */
+      start = next;
+    }
+    return out;
+  }
+  function buildChunks(notes, chunkSize, overlap) {
+    var chunks = [];
+    var perNote = [];
+    var truncatedNotes = [];
+    var fidelityFailures = [];
+    for (var i = 0; i < notes.length; i += 1) {
+      var note = notes[i];
+      var full = String(note.text || '');
+      var text = full.length > NOTE_CHAR_LIMIT ? full.slice(0, NOTE_CHAR_LIMIT) : full;
+      if (text !== full) truncatedNotes.push(note.noteId);
+      var pieces = chunkText(text, chunkSize, overlap);
+      var list = pieces.map(function (p, idx) {
+        return {
+          chunkId: note.noteId + '#' + idx,
+          noteId: note.noteId,
+          chunkIndex: idx,
+          text: p.text,
+          start: p.start,
+          end: p.end,
+          dupPrefix: idx === 0 ? 0 : Math.max(0, pieces[idx - 1].end - p.start),
+          title: note.title,
+          author: note.author,
+          url: note.url,
+          theme: note.theme || '',
+          usable: note.usable !== false,
+          degraded: note.degraded || [],
+          noteChars: text.length,
+          noteTruncated: text !== full
+        };
+      });
+      /* AC-4 保真：去掉重叠后顺序拼接必须逐字等于原文 */
+      var joined = list.map(function (c, idx) { return idx === 0 ? c.text : c.text.slice(c.dupPrefix); }).join('');
+      if (joined !== text) fidelityFailures.push({ noteId: note.noteId, expected: text.length, got: joined.length });
+      for (var k = 0; k < list.length; k += 1) chunks.push(list[k]);
+      perNote.push({
+        noteId: note.noteId, title: note.title, author: note.author, theme: note.theme || '',
+        usable: note.usable !== false, chars: text.length, count: list.length, chunks: list
+      });
+    }
+    return {
+      chunks: chunks, perNote: perNote, truncatedNotes: truncatedNotes,
+      fidelity: { ok: fidelityFailures.length === 0, failures: fidelityFailures },
+      multiCount: perNote.filter(function (n) { return n.count >= 2; }).length
+    };
+  }
+
+  /* ---------------- 建索引（✅ 真实，交接说明 §3.4） ---------------- */
+  function countTokens(text) {
+    var map = new Map();
+    var tokens = tokenize(text);
+    for (var i = 0; i < tokens.length; i += 1) map.set(tokens[i], (map.get(tokens[i]) || 0) + 1);
+    return map;
+  }
+  function buildIndex(chunks) {
+    var t0 = nowMs();
+    var N = chunks.length;
+    var tf = chunks.map(function (c) { return countTokens(c.text); });
+    var df = new Map();
+    var postings = new Map();
+    for (var i = 0; i < chunks.length; i += 1) {
+      tf[i].forEach(function (count, token) {
+        df.set(token, (df.get(token) || 0) + 1);
+        var arr = postings.get(token);
+        if (arr) arr.push(chunks[i].chunkId); else postings.set(token, [chunks[i].chunkId]);
+      });
+    }
+    var chars = chunks.map(function (c) { return c.text.length; });
+    var totalChars = chars.reduce(function (a, b) { return a + b; }, 0);
+    return {
+      N: N, tf: tf, df: df, postings: postings, chars: chars, totalChars: totalChars,
+      vocabSize: df.size, avgdl: N ? totalChars / N : 0, ms: nowMs() - t0
+    };
+  }
+  function idfOf(df, N) { return Math.log(1 + (N - df + 0.5) / (df + 0.5)); }
+
+  /* ---------------- 打分与两遍策略（✅ 真实，交接说明 §3.5–§3.7） ---------------- */
+  function buildSnippet(text, tokens) {
+    if (!text) return '';
+    var lowered = text.toLowerCase();
+    var hit = -1;
+    for (var i = 0; i < tokens.length; i += 1) {
+      var index = lowered.indexOf(String(tokens[i]).toLowerCase());
+      if (index !== -1 && (hit === -1 || index < hit)) hit = index;
+    }
+    if (hit === -1) return text.length <= SNIPPET_PADDING * 2 ? text : text.slice(0, SNIPPET_PADDING * 2) + '…';
+    var start = Math.max(0, hit - SNIPPET_PADDING);
+    var end = Math.min(text.length, hit + SNIPPET_PADDING);
+    return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+  }
+  function scoreAll(index, chunks, tokens, limit) {
+    var out = [];
+    for (var i = 0; i < chunks.length; i += 1) {
+      var len = index.chars[i];
+      if (!len) continue;
+      var tfMap = index.tf[i];
+      var score = 0;
+      var parts = [];
+      for (var t = 0; t < tokens.length; t += 1) {
+        var token = tokens[t];
+        var tf = tfMap.get(token);
+        if (!tf) continue;                       /* tf=0 / df=0 的词直接跳过，不参与求和 */
+        var df = index.df.get(token) || 0;
+        var idf = idfOf(df, index.N);
+        var denom = tf + K1 * (1 - B + B * len / index.avgdl);
+        var contribution = idf * (tf * (K1 + 1)) / denom;
+        score += contribution;
+        parts.push({ token: token, tf: tf, df: df, idf: idf, denom: denom, contribution: contribution });
+      }
+      if (score <= 0 || !parts.length) continue;
+      var c = chunks[i];
+      out.push({
+        chunkId: c.chunkId, noteId: c.noteId, chunkIndex: c.chunkIndex, noteTitle: c.title, author: c.author,
+        url: c.url, theme: c.theme, usable: c.usable, degraded: c.degraded, text: c.text, chars: len,
+        score: score, rounded: round3(score), parts: parts,
+        matchedTokens: parts.map(function (p) { return p.token; }),
+        snippet: buildSnippet(c.text, tokens)
+      });
+    }
+    /* 主序 score 降序；次序 chunkId 字典序升序（tie-break 必须有，否则 AC-6 会挂） */
+    out.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.chunkId < b.chunkId) return -1;
+      if (a.chunkId > b.chunkId) return 1;
+      return 0;
+    });
+    return out.slice(0, limit);
+  }
+  function search(index, chunks, queryRaw, options) {
+    var limit = (options && options.limit) || TOP_K;
+    var raw = typeof queryRaw === 'string' ? queryRaw : '';
+    var truncated = raw.length > QUERY_CHAR_LIMIT;
+    var query = truncated ? raw.slice(0, QUERY_CHAR_LIMIT) : raw;
+    var qTokens = queryTokensOf(query);
+    var preciseTokens = qTokens.filter(isPreciseToken);
+    var looseTokens = qTokens.filter(isDiscriminative);
+    var base = {
+      queryRaw: raw, query: query, truncated: truncated, queryTokens: qTokens,
+      preciseTokens: preciseTokens, looseTokens: looseTokens, limit: limit,
+      results: [], matchMode: 'precise', relaxed: false, tokensUsed: [], reason: 'ok', allDegraded: false
+    };
+    if (!index || index.N === 0) { base.reason = 'empty-library'; return base; }
+    if (qTokens.length === 0) { base.reason = 'no-token'; return base; }
+    if (looseTokens.length === 0) { base.reason = 'stopwords-only'; return base; }
+
+    var firstTokens = preciseTokens.length ? preciseTokens : looseTokens;
+    var results = scoreAll(index, chunks, firstTokens, limit);
+    var matchMode = 'precise';
+    var relaxed = false;
+    var tokensUsed = firstTokens;
+    /* 放宽遍触发条件：第一遍 0 命中、preciseTokens 非空、且确实还有单字可放宽 */
+    if (results.length === 0 && preciseTokens.length > 0 && preciseTokens.length < looseTokens.length) {
+      var loose = scoreAll(index, chunks, looseTokens, limit);
+      if (loose.length) { results = loose; matchMode = 'loose'; relaxed = true; tokensUsed = looseTokens; }
+    }
+    base.results = results;
+    base.matchMode = matchMode;
+    base.relaxed = relaxed;
+    base.tokensUsed = tokensUsed;
+    base.reason = results.length ? 'ok' : 'none';
+    base.allDegraded = results.length > 0 && results.every(function (r) { return !r.usable; });
+    return base;
+  }
+
+  /* ---------------- Prompt 组装（✅ 真实，交接说明 §3.8） ---------------- */
+  function buildPrompt(results, query) {
+    var lines = [];
+    lines.push('你是一个只依据「参考内容」作答的助手。规则：');
+    lines.push('1) 只使用参考内容里的信息回答，不要使用参考内容之外的知识；');
+    lines.push('2) 参考内容里没有答案时，直接说明「没有找到相关内容」，不要编造；');
+    lines.push('3) 每条结论后面标注出处编号，例如 [1]。');
+    lines.push('');
+    lines.push('【参考内容】');
+    if (!results || !results.length) {
+      lines.push('（本次没有检索到任何相关内容。请如实说明「没有找到相关内容」，不要编造答案。）');
+    } else {
+      for (var i = 0; i < results.length; i += 1) {
+        var r = results[i];
+        lines.push('[' + (i + 1) + '] 出处：《' + r.noteTitle + '》 / 作者：' + r.author + ' / URL：' + r.url);
+        lines.push('    chunkId：' + r.chunkId);
+        lines.push('    内容：' + r.text);
+        lines.push('');
+      }
+    }
+    lines.push('【用户问题】');
+    lines.push(query);
+    var text = lines.join('\n');
+    return { text: text, chars: text.length, chunkCount: results ? results.length : 0 };
+  }
+
+  /* ---------------- 回答与引用（🔶 模拟，交接说明 §3.9） ---------------- */
+  function splitSentences(text) {
+    var parts = [];
+    var buf = '';
+    var chars = Array.from(String(text));
+    for (var i = 0; i < chars.length; i += 1) {
+      buf += chars[i];
+      if ('。！？；!?;'.indexOf(chars[i]) !== -1) { if (buf.trim()) parts.push(buf.trim()); buf = ''; }
+    }
+    if (buf.trim()) parts.push(buf.trim());
+    return parts;
+  }
+  function pickSentence(text, tokens) {
+    var sentences = splitSentences(text);
+    if (!sentences.length) return '';
+    var sorted = Array.from(new Set(tokens)).sort(function (a, b) { return b.length - a.length; });
+    for (var t = 0; t < sorted.length; t += 1) {
+      var token = String(sorted[t]).toLowerCase();
+      for (var s = 0; s < sentences.length; s += 1) {
+        if (sentences[s].toLowerCase().indexOf(token) !== -1) {
+          var sentence = sentences[s];
+          return sentence.length > 90 ? sentence.slice(0, 90) + '…' : sentence;
+        }
+      }
+    }
+    return sentences[0].length > 90 ? sentences[0].slice(0, 90) + '…' : sentences[0];
+  }
+  function buildAnswer(results, query) {
+    var out = {
+      simulated: true, empty: !results || !results.length,
+      lead: '🔶 模拟生成：下面这段回答由检索命中的片段按固定模板拼接而成，不是任何模型产出，也没有调用任何模型。',
+      paragraphs: [], citations: [],
+      noScoreNote: '本区不显示任何置信度 / 相似度 / 概率数字：这些数字没有被真算出来，显示了就是编造（FR-10）。'
+    };
+    if (!results || !results.length) {
+      out.paragraphs.push({ text: '没有找到相关内容。', cite: null });
+      out.paragraphs.push({
+        text: '本页是纯关键词匹配、没有语义理解能力：query 里的词只要没在正文里原样出现，就检索不到。换用正文里出现过的原词（例如「云南」「上海」「粉底液」）更容易命中。',
+        cite: null
+      });
+      return out;
+    }
+    out.paragraphs.push({ text: '关于「' + query + '」，检索命中的内容里可以这样看：', cite: null });
+    var cited = results.slice(0, 3);
+    for (var i = 0; i < cited.length; i += 1) {
+      var r = cited[i];
+      var sentence = pickSentence(r.text, r.matchedTokens);
+      out.citations.push({
+        index: i + 1, chunkId: r.chunkId, noteId: r.noteId, title: r.noteTitle, author: r.author,
+        url: r.url, snippet: sentence, usable: r.usable
+      });
+      out.paragraphs.push({
+        text: '《' + r.noteTitle + '》（' + r.author + '）提到：' + sentence,
+        cite: i + 1
+      });
+    }
+    out.paragraphs.push({
+      text: '以上只覆盖本次检索命中的片段。命中 ' + results.length + ' 条，其中引用 ' + cited.length + ' 条；本页没有语义理解能力，词没对上就检索不到。',
+      cite: null
+    });
+    return out;
+  }
+
+  /* ---------------- 检索词构建（🔶 模拟，规则 + 预置映射近似） ---------------- */
+  var SYNONYMS = {
+    '云南': ['滇', '彩云之南'], '大理': ['洱海', '喜洲', '古城'], '丽江': ['束河', '大研', '古城'],
+    '香格里拉': ['松赞林寺', '普达措', '高原'], '旅游': ['旅行', '行程', '攻略'],
+    '上海': ['魔都', '本帮菜'], '餐厅': ['小馆', '饭馆', '馆子'], '日料': ['居酒屋', '海鲜丼'],
+    '早午餐': ['brunch', '咖啡'], '粉底液': ['粉底', '底妆', '持妆'], '油皮': ['控油', '出油'],
+    '敏感肌': ['泛红', '温和', '屏障'], '色号': ['试色', '明度', '氧化'], '定妆': ['散粉', '定妆喷雾'],
+    '防晒': ['紫外线', '防晒霜']
+  };
+  var EXCLUDE_DEFAULT = ['广告', '优惠券', '代购', '秒杀', '拼团'];
+  function buildQueryTerms(query) {
+    var q = String(query || '');
+    var tokens = queryTokensOf(q);
+    var core = tokens.filter(isPreciseToken);
+    var fallback = false;
+    if (!core.length) { core = q.trim() ? [q.trim()] : []; fallback = true; }
+    var expandSeen = new Set();
+    var expand = [];
+    for (var i = 0; i < tokens.length; i += 1) {
+      var list = SYNONYMS[tokens[i]];
+      if (!list) continue;
+      for (var j = 0; j < list.length; j += 1) {
+        if (expandSeen.has(list[j])) continue;
+        expandSeen.add(list[j]);
+        expand.push({ from: tokens[i], to: list[j] });
+      }
+    }
+    var exclude = tokens.filter(function (t) { return EXCLUDE_DEFAULT.indexOf(t) !== -1; });
+    return {
+      query: q, tokens: tokens, core: core, coreFallback: fallback, expand: expand,
+      exclude: exclude, excludeFallback: EXCLUDE_DEFAULT.slice(),
+      matched: Object.keys(SYNONYMS).filter(function (k) { return tokens.indexOf(k) !== -1; })
+    };
+  }
+
+  /* ---------------- 事件类型清单（PRD 第 6 节 10 类，去掉随「① 链接识别」删除的 link_parse） ---------------- */
+  var EVENT_TYPES = [
+    'demo_load', 'index_build', 'query_submit', 'query_result',
+    'prompt_preview', 'answer_render', 'sim_badge_view', 'quiz_submit', 'export_events'
+  ];
+
+  return {
+    K1: K1, B: B, TOP_K: TOP_K, SNIPPET_PADDING: SNIPPET_PADDING,
+    CHUNK_SIZE_MIN: CHUNK_SIZE_MIN, CHUNK_SIZE_MAX: CHUNK_SIZE_MAX,
+    NOTE_CHAR_LIMIT: NOTE_CHAR_LIMIT, QUERY_CHAR_LIMIT: QUERY_CHAR_LIMIT,
+    CJK_STOPWORDS: CJK_STOPWORDS, EVENT_TYPES: EVENT_TYPES,
+    tokenize: tokenize, queryTokensOf: queryTokensOf, isPreciseToken: isPreciseToken, isDiscriminative: isDiscriminative,
+    deriveChunkParams: deriveChunkParams, normaliseParams: normaliseParams, chunkText: chunkText, buildChunks: buildChunks,
+    buildIndex: buildIndex, countTokens: countTokens, idfOf: idfOf,
+    scoreAll: scoreAll, search: search, buildSnippet: buildSnippet,
+    buildPrompt: buildPrompt, buildAnswer: buildAnswer, buildQueryTerms: buildQueryTerms,
+    round3: round3, round4: round4
+  };
+})();
+</script>
+
+<!-- ===================== UI（只做展示与事件绑定） ===================== -->
+<script id="rag-ui">
+(function () {
+  'use strict';
+  var C = RAGCore;
+  var $ = function (id) { return document.getElementById(id); };
+  var COMPUTE_YIELD_MS = 180;   /* 让 B15 / AC-14 的「计算期间禁用」肉眼可见 */
+
+  /* 7 个环节：标记的唯一真源，顶部一览与各区块标题都由它渲染
+     （编号沿用 PRD 4.2 的原始编号，便于和 PRD 对照） */
+  var STAGES = [
+    { n: '③', badge: 3, key: 'chunk', name: '分块 Chunking', sim: false, prd: 'PRD 4.2 ③ / FR-4', col: 'left' },
+    { n: '④', badge: 4, key: 'token', name: '分词', sim: false, prd: 'PRD 4.2 ④ / §3.2', col: 'left' },
+    { n: '⑤', badge: 5, key: 'index', name: '建索引', sim: false, prd: 'PRD 4.2 ⑤ / FR-5', col: 'left' },
+    { n: '⑥', badge: 6, key: 'terms', name: '检索词构建', sim: true, prd: 'PRD 4.2 ⑥ / FR-6', col: 'right' },
+    { n: '⑦', badge: 7, key: 'score', name: '打分与排序', sim: false, prd: 'PRD 4.2 ⑦ / FR-7', col: 'right' },
+    { n: '⑧', badge: 8, key: 'prompt', name: 'Prompt 组装', sim: false, prd: 'PRD 4.2 ⑧ / FR-9', col: 'right' },
+    { n: '⑨', badge: 9, key: 'answer', name: '回答生成', sim: true, prd: 'PRD 4.2 ⑨ / FR-10', col: 'right' }
+  ];
+
+  var state = {
+    notes: [], chunks: [], perNote: [], fidelity: null,
+    index: null, params: null, applied: { chunkSize: 0, overlap: 0 },
+    last: null, lastPrompt: null, busy: false, events: [], seq: 0,
+    clampMessages: [], multiCount: 0,
+    quizAnswered: {}, quizCorrect: 0
+  };
+
+  /* ---------------- 工具 ---------------- */
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function highlight(text, tokens) {
+    var out = esc(text);
+    var list = Array.from(new Set(tokens || []))
+      .filter(function (t) { return t && String(t).length; })
+      .sort(function (a, b) { return String(b).length - String(a).length; })
+      .map(function (t) { return String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    if (!list.length) return out;
+    try { return out.replace(new RegExp('(' + list.join('|') + ')', 'gi'), '<mark>$1</mark>'); }
+    catch (e) { return out; }
+  }
+  function localTime(d) {
+    function p(n, w) { return String(n).padStart(w || 2, '0'); }
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3);
+  }
+  function meta() {
+    return {
+      noteCount: state.notes.length,
+      usableCount: state.notes.filter(function (n) { return n.usable !== false; }).length,
+      degradedCount: state.notes.filter(function (n) { return n.usable === false; }).length,
+      chunkCount: state.chunks.length, N: state.index ? state.index.N : 0
+    };
+  }
+  var DATASET = MOCK_DATA.dataset || {};
+  var PRESET_QUERIES = DATASET.presetQueries || [];
+  var THEMES = DATASET.themes || [];
+  function themeName(id) {
+    var t = THEMES.filter(function (x) { return x.id === id; })[0];
+    return t ? t.name : (id || '未分组');
+  }
+  function isPreset(q) {
+    var v = String(q).trim();
+    return PRESET_QUERIES.some(function (p) { return p.query === v; });
+  }
+
+  /* ---------------- 事件记录（FR-12） ---------------- */
+  function logEvent(type, payload) {
+    state.seq += 1;
+    var at = new Date();
+    state.events.push({ seq: state.seq, type: type, at: at.toISOString(), time: localTime(at), payload: payload || {} });
+    renderEvents();
+  }
+  function renderEvents() {
+    var box = $('eventList');
+    if (!state.events.length) { box.innerHTML = '<p class="small muted">还没有事件。</p>'; return; }
+    var rows = state.events.slice().reverse().map(function (e) {
+      return '<tr><td class="num-cell">' + e.seq + '</td><td class="evt-time">' + esc(e.time) + '</td>'
+        + '<td class="evt-type">' + esc(e.type) + '</td>'
+        + '<td><code>' + esc(JSON.stringify(e.payload)) + '</code></td></tr>';
+    }).join('');
+    box.innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>时间</th><th>事件</th><th>payload</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    $('eventCount').textContent = '当前 ' + state.events.length + ' 条事件（倒序显示）';
+    var seen = {};
+    state.events.forEach(function (e) { seen[e.type] = (seen[e.type] || 0) + 1; });
+    var coverage = C.EVENT_TYPES.map(function (t) {
+      var n = seen[t] || 0;
+      return '<span class="strip-item ' + (n ? 'real' : '') + '">' + (n ? '✅ ' : '⬜ ') + t + (n ? ' ×' + n : ' 未触发') + '</span>';
+    }).join('');
+    var missing = C.EVENT_TYPES.filter(function (t) { return !seen[t]; });
+    $('eventCoverage').innerHTML = '<div class="small"><b>9 类事件覆盖情况</b>（PRD 第 6 节 10 类，去掉随「① 链接识别」删除的 <code>link_parse</code>）</div>'
+      + '<div class="strip">' + coverage + '</div>'
+      + '<p class="small ' + (missing.length ? 'muted' : '') + '">'
+      + (missing.length
+        ? '还差 ' + missing.length + ' 类没触发：<code>' + esc(missing.join('</code> <code>')) + '</code>。'
+          + '提示：展开顶部「真实性图例」会记 <code>sim_badge_view</code>；提交一道自测题会记 <code>quiz_submit</code>；点检索会记 <code>query_submit</code> / <code>query_result</code>；展开 ⑧ 的 Prompt 会记 <code>prompt_preview</code>。'
+        : '本页 9 类事件都已触发过。导出按钮会先把 <code>export_events</code> 写进事件流，再序列化，因此导出文件里一定包含它。')
+      + '</p>';
+  }
+
+  /* ---------------- 数据源（构造数据） ---------------- */
+  function renderNoteCards() {
+    var m = meta();
+    $('fetchSummary').innerHTML =
+      '<span class="badge neutral">共 ' + m.noteCount + ' 条</span>'
+      + '<span class="badge real">可用 ' + m.usableCount + ' 条</span>'
+      + '<span class="badge sim">内容不完整 ' + m.degradedCount + ' 条</span>'
+      + '<span class="small muted">（3 个主题，各 4 条）</span>';
+    $('dataBadge').textContent = m.noteCount + ' 条构造数据';
+    var order = THEMES.length ? THEMES.map(function (t) { return t.id; }) : Array.from(new Set(state.notes.map(function (n) { return n.theme; })));
+    var html = '';
+    order.forEach(function (tid) {
+      var list = state.notes.filter(function (n) { return (n.theme || '') === tid; });
+      if (!list.length) return;
+      html += '<div class="theme-head">📌 ' + esc(themeName(tid)) + '<span class="small muted">' + list.length + ' 条</span></div>'
+        + '<div class="grid grid2">' + list.map(renderNoteCard).join('') + '</div>';
+    });
+    var others = state.notes.filter(function (n) { return order.indexOf(n.theme || '') === -1; });
+    if (others.length) html += '<div class="grid grid2">' + others.map(renderNoteCard).join('') + '</div>';
+    $('noteCards').innerHTML = html;
+  }
+  function renderNoteCard(n) {
+    var bad = n.usable === false;
+    return '<div class="note ' + (bad ? 'degraded' : '') + '" id="note-' + esc(n.noteId) + '">'
+      + '<h4>' + esc(n.title) + '</h4>'
+      + '<div class="kv"><span>作者：' + esc(n.author) + '</span><span>正文：' + esc(String(n.text.length)) + ' 字</span>'
+      + '<span>usable=<b>' + esc(String(n.usable)) + '</b></span></div>'
+      + '<div>' + (bad ? '<span class="badge sim">内容不完整</span>' : '<span class="badge real">内容可用</span>')
+      + (bad ? ' <span class="small muted">照常分块、照常被检索到</span>' : '') + '</div>'
+      + (bad ? '<ul class="small" style="margin:5px 0 0;padding-left:18px">' + n.degraded.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '')
+      + '<div class="small" style="margin-top:5px"><code>' + esc(n.noteId) + '</code></div>'
+      + '<div class="small muted" style="overflow-wrap:anywhere">URL（不可点击）：<code>' + esc(n.url) + '</code></div>'
+      + '<div class="small muted">importedAt：' + esc(n.importedAt || '') + '</div>'
+      + '</div>';
+  }
+
+  /* ---------------- ③ 分块 ---------------- */
+  function renderChunks() {
+    var p = state.params;
+    var msgs = state.clampMessages || [];
+    $('paramInfo').innerHTML = '<div class="box ' + (msgs.length ? 'warn' : 'info') + '">'
+      + '<b>参数来源（测量推导，不是写死的）</b>：' + p.sampleSize + ' 条正文长度中位数 = <b>' + p.median + '</b> 字（实测，范围 ' + p.min + '–' + p.max + '）→ '
+      + '<code>chunkSize = round(' + p.median + ' × 0.5) = ' + p.chunkSize + '</code>，'
+      + '<code>overlap = round(' + p.chunkSize + ' × 0.2) = ' + p.overlap + '</code>。'
+      + '约束：chunkSize 夹到 [40, 2000]、overlap 夹到 [0, chunkSize-1]。'
+      + (msgs.length ? '<br>⚠️ 本次输入被调整：' + msgs.map(esc).join('；') : '<br>当前生效参数就是测量推导值，没有被夹取。')
+      + '</div>';
+    $('chunkSummary').innerHTML = '<div class="row tight">'
+      + '<span class="badge neutral">chunk 总数 N = ' + state.chunks.length + '</span>'
+      + '<span class="badge ' + (state.fidelity && state.fidelity.ok ? 'real' : 'sim') + '">保真校验（去重叠拼接 == 原文）：'
+      + (state.fidelity && state.fidelity.ok ? '✅ ' + state.notes.length + '/' + state.notes.length + ' 条通过' : '❌ ' + JSON.stringify(state.fidelity && state.fidelity.failures)) + '</span>'
+      + '<span class="badge ' + (state.multiCount >= 3 ? 'real' : 'sim') + '">切出 ≥2 个 chunk 的笔记：' + state.multiCount + ' / ' + state.notes.length + '（FR-4 要求 ≥3）</span>'
+      + '</div>';
+    $('chunkList').innerHTML = state.perNote.map(function (n) {
+      var badge = n.usable ? '<span class="badge real">可用</span>' : '<span class="badge sim">内容不完整</span>';
+      return '<details><summary>' + esc(n.title) + ' ' + badge
+        + ' <span class="small muted">' + esc(themeName(n.theme)) + ' · 正文 ' + n.chars + ' 字 → <b>' + n.count + '</b> 个 chunk</span></summary>'
+        + (n.usable ? '' : '<p class="small muted">这条内容不完整，但同样会被分块、也会被检索到 —— 与 xhs-rag 的行为一致（PRD 4.5）。</p>')
+        + '<table class="tbl"><thead><tr><th>chunkId</th><th>字符数</th><th>与上一块重叠</th><th>文本</th></tr></thead><tbody>'
+        + n.chunks.map(function (c) {
+          return '<tr><td><code>' + esc(c.chunkId) + '</code></td><td class="num-cell">' + c.text.length + '</td>'
+            + '<td class="num-cell">' + c.dupPrefix + '</td><td style="white-space:normal;min-width:300px">' + esc(c.text) + '</td></tr>';
+        }).join('') + '</tbody></table></details>';
+    }).join('');
+  }
+
+  /* ---------------- ④ 分词 ---------------- */
+  function renderQueryTokens() {
+    var q = $('queryInput').value;
+    var tokens = C.tokenize(q);
+    var uniq = Array.from(new Set(tokens));
+    var precise = uniq.filter(C.isPreciseToken);
+    var loose = uniq.filter(C.isDiscriminative);
+    var box = $('queryTokens');
+    if (!q.trim()) { box.innerHTML = '<p class="small muted">输入框是空的。空 query 不触发检索（B1）。</p>'; return; }
+    box.innerHTML = '<div class="small muted">query：<code>' + esc(q) + '</code>（' + q.length + ' 字符）</div>'
+      + '<div class="small" style="margin-top:4px">全部 token（' + tokens.length + ' 个，保留重复）：</div>'
+      + '<div>' + tokens.map(function (t) { return '<span class="chip' + (C.isPreciseToken(t) ? '' : ' cjk1') + '">' + esc(t) + '</span>'; }).join('') + '</div>'
+      + '<div class="small" style="margin-top:5px">去重后（' + uniq.length + ' 个）→ 精确遍用多字 token（' + precise.length + ' 个）：'
+      + (precise.length ? precise.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('') : '<span class="muted">（无）</span>') + '</div>'
+      + '<div class="small" style="margin-top:4px">放宽遍候选（去掉虚字表里的单字，' + loose.length + ' 个）：'
+      + (loose.length ? loose.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('') : '<span class="muted">（空 → 直接返回空结果，query「的」就是这种情形）</span>') + '</div>';
+  }
+  function renderChunkPicker() {
+    var sel = $('chunkPicker');
+    var keep = sel.value;
+    sel.innerHTML = state.chunks.map(function (c) {
+      return '<option value="' + esc(c.chunkId) + '">' + esc(themeName(c.theme) + ' · ' + c.chunkId) + '（' + c.text.length + ' 字）</option>';
+    }).join('');
+    if (keep && state.chunks.some(function (c) { return c.chunkId === keep; })) sel.value = keep;
+    renderChunkTokens();
+  }
+  function renderChunkTokens() {
+    var id = $('chunkPicker').value;
+    var chunk = state.chunks.filter(function (c) { return c.chunkId === id; })[0];
+    var box = $('chunkTokens');
+    if (!chunk) { box.innerHTML = '<p class="small muted">（没有可选 chunk）</p>'; return; }
+    var tokens = C.tokenize(chunk.text);
+    var counts = new Map();
+    tokens.forEach(function (t) { counts.set(t, (counts.get(t) || 0) + 1); });
+    var rows = Array.from(counts.entries()).sort(function (a, b) { return b[1] - a[1] || (a[0] < b[0] ? -1 : 1); }).slice(0, 40);
+    box.innerHTML = '<div class="small muted">《' + esc(chunk.title) + '》的这块文本，共 ' + tokens.length + ' 个 token、' + counts.size
+      + ' 个不同的 token（按出现次数排序，最多显示 40 个）：</div>'
+      + '<div>' + rows.map(function (e) {
+        return '<span class="chip' + (C.isPreciseToken(e[0]) ? '' : ' cjk1') + '">' + esc(e[0]) + ' ×' + e[1] + '</span>';
+      }).join('') + '</div>'
+      + '<div class="small muted" style="margin-top:4px">蓝色 = 单字，灰色 = 双字 bigram / 拉丁词。|D| 用的是<b>字符数</b>（' + chunk.text.length + '），不是 token 数（' + tokens.length + '）。</div>';
+  }
+
+  /* ---------------- ⑤ 建索引 ---------------- */
+  function renderIndex() {
+    var idx = state.index;
+    var avg = Math.round(idx.avgdl * 1000) / 1000;
+    var noteChars = state.notes.reduce(function (a, n) { return a + String(n.text || '').length; }, 0);
+    $('indexStats').innerHTML = '<div class="grid grid4">'
+      + statCard('N（chunk 总数，不是笔记数）', idx.N)
+      + statCard('词典大小（去重 token 数）', idx.vocabSize)
+      + statCard('avgdl（平均 chunk 字符数）', avg)
+      + statCard('建索引耗时', Math.round(idx.ms * 100) / 100 + ' ms')
+      + '</div>'
+      + '<p class="small muted" style="margin-top:6px">人工核算复现（AC-5）：Σ|D| = <b>' + idx.totalChars + '</b> 字符，N = <b>' + idx.N
+      + '</b> → avgdl = ' + idx.totalChars + ' / ' + idx.N + ' = <b>' + avg + '</b>，与上面显示值一致。'
+      + 'df(t) 的口径是「含 t 的 chunk 数」，下表可逐行核对。</p>'
+      + '<p class="small muted">注意别把 Σ|D| 和原文总字数搞混：Σ|D| 是<b>所有 chunk 的字符数之和</b>，而 chunk 之间带 overlap（相邻块共享 '
+      + state.applied.overlap + ' 个字符），所以 ' + idx.totalChars + ' &gt; 12 条正文总字数 ' + noteChars
+      + ' 字。这是口径本身如此（|D| = chunk 字符数），不是重复计数 bug。</p>';
+    var q = $('queryInput').value;
+    var tokens = C.queryTokensOf(q).slice(0, 14);
+    if (!tokens.length) { $('indexTokens').innerHTML = '<p class="small muted">当前输入框没有可用 token，先输入一个 query。</p>'; return; }
+    var rows = tokens.map(function (t) {
+      var df = idx.df.get(t) || 0;
+      var idf = df ? C.idfOf(df, idx.N) : null;
+      var postings = idx.postings.get(t) || [];
+      return '<tr><td><code>' + esc(t) + '</code></td><td class="num-cell">' + df + '</td>'
+        + '<td class="num-cell">' + (idf === null ? '<span class="muted">—（df=0，打分时跳过）</span>' : C.round4(idf)) + '</td>'
+        + '<td>' + (postings.length ? postings.slice(0, 4).map(function (p) { return '<code>' + esc(p) + '</code>'; }).join(' ')
+          + (postings.length > 4 ? ' …共 ' + postings.length + ' 个 chunk' : '') : '<span class="muted">倒排表里没有这个词</span>') + '</td></tr>';
+    }).join('');
+    $('indexTokens').innerHTML = '<h3>当前 query 的每个 token：df / IDF / 倒排表</h3>'
+      + '<table class="tbl"><thead><tr><th>token</th><th>df（含该词的 chunk 数）</th><th>IDF = ln(1+(N-df+0.5)/(df+0.5))</th><th>倒排表（前 4 个 chunkId）</th></tr></thead><tbody>'
+      + rows + '</tbody></table>';
+  }
+  function statCard(label, value) {
+    return '<div class="box"><div class="small muted">' + esc(label) + '</div><div style="font-size:19px;font-weight:700" class="mono">' + esc(String(value)) + '</div></div>';
+  }
+
+  /* ---------------- ⑥ 检索词构建 ---------------- */
+  function renderTerms() {
+    var q = $('queryInput').value;
+    var terms = C.buildQueryTerms(q);
+    var box = $('termsBox');
+    function col(title, cls, content) {
+      return '<div class="box ' + cls + '"><h3 style="margin-top:0">' + title + '</h3>' + content + '</div>';
+    }
+    var coreHtml = terms.core.length
+      ? terms.core.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('')
+        + (terms.coreFallback ? '<p class="small muted">query 里没有多字 token，按规则退回用原词本身作核心词。</p>' : '<p class="small muted">规则：query 里长度 ≥2 的 token。</p>')
+      : '<p class="small">（query 为空）</p>';
+    var expandHtml = terms.expand.length
+      ? terms.expand.map(function (e) { return '<span class="chip">' + esc(e.to) + '</span><span class="small muted"> ← ' + esc(e.from) + '</span> '; }).join('')
+        + '<p class="small muted">规则：预置同义词表命中（真实实现里这一步由 LLM 生成）。</p>'
+      : '<p class="small muted">该 query 没有命中预置同义词映射。这是<b>显式的规则说明</b>，不是留白：真实系统里扩展词由模型生成，本页没有模型，所以给不出。</p>';
+    var excludeHtml = (terms.exclude.length
+      ? terms.exclude.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('')
+      : '<p class="small muted">query 里没有命中排除表的词。通用排除表（与本次 query 无关，仅展示规则）：'
+        + terms.excludeFallback.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('') + '</p>');
+    box.innerHTML = col('核心词（必须匹配）', 'real', coreHtml)
+      + col('扩展词（建议匹配）', 'sim', expandHtml)
+      + col('排除词（必须过滤）', 'sim', excludeHtml)
+      + '<div class="box sim" style="grid-column:1/-1">🔶 模拟：真实实现中这一步由 LLM 完成（知识库文档 337–361 行）。本页用规则 + 预置映射近似。'
+      + '命中预置映射的 query 词：' + (terms.matched.length ? terms.matched.map(function (m) { return '<code>' + esc(m) + '</code>'; }).join(' ') : '<span class="muted">（无）</span>')
+      + '。<b>本页展示的三分类不参与打分。</b></div>';
+  }
+
+  /* ---------------- ⑦ 检索与打分 ---------------- */
+  function emptyText(res) {
+    if (res.reason === 'empty-library') return { title: '库是空的', body: '当前没有任何 chunk 可检索（B7）。' };
+    if (res.reason === 'no-token') return { title: '没有有效检索词', body: 'query 里没有被分词规则识别出的字符（只有标点 / emoji / 空白）。请换用中文或拉丁文字词（B2 / B9）。' };
+    if (res.reason === 'stopwords-only') return { title: '没有有效检索词', body: 'query 里的字全部命中虚字表（例如「的」），放宽遍的候选为空，因此直接返回空态 —— 而不是返回满屏噪声（B3 / FR-8）。' };
+    return { title: '没有命中任何内容', body: '本页是纯关键词匹配（没有语义理解，也没有向量检索）：query 里的词只要没在正文里原样出现，就检索不到。换用正文里出现过的原词更容易命中（FR-8）。' };
+  }
+  function renderResults(res) {
+    var box = $('results');
+    var head = '<div class="row tight">'
+      + '<span class="badge ' + (res.matchMode === 'loose' ? 'warn' : 'real') + '">matchMode = ' + esc(res.matchMode) + '</span>'
+      + '<span class="badge neutral">命中 ' + res.results.length + ' 条（top-' + res.limit + '）</span>'
+      + '<span class="badge neutral">queryTokens ' + res.queryTokens.length + ' 个</span>'
+      + (res.relaxed ? '<span class="badge warn">走了放宽遍</span>' : '') + '</div>';
+    var notices = '';
+    if (res.truncated) notices += '<div class="box warn">query 长度 ' + res.queryRaw.length + ' 字符，超过 200 字符阈值，已截断到 200 字符后检索（B4 的默认处置：截断 + 提示）。</div>';
+    if (res.matchMode === 'loose') notices += '<div class="box warn"><b>宽松命中</b>：精确遍（多字词）完全没有命中，本次结果来自放宽遍（单字，已排除虚字表）。'
+      + '<b>相关度可能较低，请自行核对片段是否切题。</b> 这正是「召回与准确是权衡关系」的教学素材（FR-8）。</div>';
+    if (res.allDegraded) notices += '<div class="box warn"><b>命中的内容不完整</b>：本次命中的全部是内容不完整的笔记（usable=false）。它们照常入库、照常被检索到，但内容不可信（B6 / AC-11）。</div>';
+    if (res.reason !== 'ok') {
+      var e = emptyText(res);
+      box.innerHTML = head + notices + '<div class="box warn"><b>' + esc(e.title) + '</b><p style="margin:4px 0 0">' + esc(e.body) + '</p></div>'
+        + '<p class="small muted">这是一个明确的空态，不是白屏，也不是「0 分结果列表」占位（PRD 第 5 节的统一原则）。</p>';
+      return;
+    }
+    var hits = res.results.map(function (r, i) { return renderHit(r, i + 1); }).join('');
+    box.innerHTML = head + notices + hits
+      + '<p class="small muted">分数显示保留 3 位小数（<code>Math.round(score×1000)/1000</code>），分项贡献显示保留 4 位小数，'
+      + '所以「Σ 分项」与「总分」可能有 0.0001 级舍入差；人工核算请用未舍入值（AC-6）。</p>';
+  }
+  function renderHit(r, rank) {
+    var parts = r.parts.slice().sort(function (a, b) { return b.contribution - a.contribution; });
+    var rows = parts.map(function (p) {
+      return '<tr><td><code>' + esc(p.token) + '</code></td><td class="num-cell">' + p.tf + '</td><td class="num-cell">' + p.df
+        + '</td><td class="num-cell">' + C.round4(p.idf) + '</td><td class="num-cell">' + C.round4(p.denom)
+        + '</td><td class="num-cell">' + C.round4(p.contribution) + '</td></tr>';
+    }).join('');
+    var sum = parts.reduce(function (a, p) { return a + p.contribution; }, 0);
+    return '<article class="hit ' + (r.usable ? '' : 'degraded') + '">'
+      + '<div class="hit-head"><span class="rank">#' + rank + '</span>'
+      + '<span class="score" title="真 BM25 总分（保留 3 位小数）">score ' + r.rounded.toFixed(3) + '</span>'
+      + '<code>' + esc(r.chunkId) + '</code><span class="chip">' + r.chars + ' 字符</span>'
+      + '<span class="chip">' + esc(themeName(r.theme)) + '</span>'
+      + (r.usable ? '<span class="badge real">可用</span>' : '<span class="badge sim">内容不完整</span>')
+      + '</div>'
+      + '<div><b>《' + esc(r.noteTitle) + '》</b><span class="small muted"> · ' + esc(r.author) + ' · </span>'
+      + '<button class="btn linkish" data-jump="' + esc(r.noteId) + '">回到笔记卡片</button></div>'
+      + '<div class="snippet">' + highlight(r.snippet, r.matchedTokens) + '</div>'
+      + '<div class="small muted">命中 token：' + r.matchedTokens.map(function (t) { return '<span class="chip hit">' + esc(t) + '</span>'; }).join('') + '</div>'
+      + '<details><summary>分项贡献拆解（哪个词贡献了多少分）</summary>'
+      + '<table class="tbl"><thead><tr><th>token</th><th>tf(t,D)</th><th>df(t)</th><th>IDF(t)</th><th>长度归一化分母</th><th>贡献分</th></tr></thead><tbody>'
+      + rows + '</tbody></table>'
+      + '<p class="small muted">Σ 分项 = ' + C.round4(sum) + '（未舍入总和）；本 chunk 总分显示为 ' + r.rounded.toFixed(3)
+      + '。分母 = tf + k1×(1 - b + b×|D|/avgdl)，其中 |D| = ' + r.chars + '、avgdl = ' + (Math.round(state.index.avgdl * 1000) / 1000) + '、k1 = ' + C.K1 + '、b = ' + C.B + '。</p>'
+      + '<p class="small muted">标题<b>不参与</b>这次打分（D = chunk 文本，单字段）：标题命中不会加分，只有在结果层显示给你看。</p>'
+      + '</details>'
+      + (r.usable ? '' : '<details><summary>为什么说这条内容不可信</summary><ul>' + r.degraded.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul></details>')
+      + '<details><summary>出处 URL（不可点击：点了就会发网络请求）</summary><code>' + esc(r.url) + '</code></details>'
+      + '</article>';
+  }
+
+  /* ---------------- ⑧ Prompt ---------------- */
+  function renderPrompt(res) {
+    var prompt = C.buildPrompt(res.results, res.query);
+    state.lastPrompt = prompt;
+    $('promptBox').innerHTML = '<div class="row tight"><span class="badge real">✅ 真实：纯字符串拼接</span>'
+      + '<span class="badge neutral">命中 chunk ' + prompt.chunkCount + ' 个</span>'
+      + '<span class="badge neutral">prompt ' + prompt.chars + ' 字符</span>'
+      + '<button class="btn" id="copyPromptBtn">复制 prompt 全文</button></div>'
+      + (prompt.chunkCount === 0 ? '<div class="box warn">无命中分支：prompt 里写入了明确指令，要求模型说明「没有找到」，而不是留空（对应知识库文档 512 行）。</div>' : '')
+      + '<details id="promptDetails" open><summary>prompt 全文（' + prompt.chars + ' 字符，可复制）</summary>'
+      + '<pre class="prompt" id="promptText">' + esc(prompt.text) + '</pre></details>';
+    $('copyPromptBtn').addEventListener('click', function () { copyText(prompt.text, $('copyPromptBtn')); });
+    if ($('promptDetails').open) logPromptPreview();
+  }
+  function logPromptPreview() {
+    if (!state.lastPrompt) return;
+    logEvent('prompt_preview', { chunkCount: state.lastPrompt.chunkCount, promptChars: state.lastPrompt.chars });
+  }
+  function copyText(text, btn) {
+    var done = function () { var old = btn.textContent; btn.textContent = '已复制 ✓'; setTimeout(function () { btn.textContent = old; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else { fallbackCopy(text, done); }
+  }
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* 复制失败不改页面状态 */ }
+    document.body.removeChild(ta);
+  }
+
+  /* ---------------- ⑨ 回答与出处 ---------------- */
+  function renderAnswer(res) {
+    var ans = C.buildAnswer(res.results, res.query);
+    logEvent('answer_render', { citationCount: ans.citations.length, empty: ans.empty, simulated: true });
+    var html = '<div class="box sim"><b>🔶 模拟生成</b>：' + esc(ans.lead) + '</div>'
+      + '<p class="small muted">' + esc(ans.noScoreNote) + '</p>';
+    ans.paragraphs.forEach(function (p) {
+      html += '<p>' + esc(p.text) + (p.cite ? ' <button class="btn linkish" data-cite="' + p.cite + '">[来源 ' + p.cite + ']</button>' : '') + '</p>';
+    });
+    if (ans.citations.length) {
+      html += '<h3>引用（点标题回到笔记卡片）</h3><ol class="small">' + ans.citations.map(function (c) {
+        return '<li id="cite-' + c.index + '"><button class="btn linkish" data-jump="' + esc(c.noteId) + '">《' + esc(c.title) + '》</button>'
+          + ' · ' + esc(c.author) + (c.usable ? '' : ' <span class="badge sim">内容不完整</span>')
+          + '<br><span class="muted">片段：' + esc(c.snippet) + '</span>'
+          + '<br><span class="muted" style="overflow-wrap:anywhere">URL（不可点击）：<code>' + esc(c.url) + '</code></span></li>';
+      }).join('') + '</ol>';
+    }
+    $('answerBox').innerHTML = html;
+  }
+
+  /* ---------------- 检索动作（FR-7 / FR-13 / B15） ---------------- */
+  var searchBtn, presetButtons = [];
+  function setBusy(busy) {
+    state.busy = busy;
+    searchBtn.disabled = busy;
+    presetButtons.forEach(function (b) { b.disabled = busy; });
+    $('searchStatus').textContent = busy ? '检索中…（按钮已禁用，B15 / AC-14）' : '';
+  }
+  function submitSearch() {
+    if (state.busy) return;
+    var raw = $('queryInput').value;
+    if (!raw.trim()) { $('results').innerHTML = '<div class="box warn"><b>请输入检索词</b>：空 query 不触发检索，也不计入事件（B1）。</div>'; return; }
+    setBusy(true);
+    $('results').innerHTML = '<div class="box info">检索中…</div>';
+    setTimeout(function () {
+      try {
+        var res = C.search(state.index, state.chunks, raw, { limit: C.TOP_K });
+        state.last = res;
+        logEvent('query_submit', { query: raw, queryTokens: res.queryTokens, matchMode: res.matchMode, preset: isPreset(raw) });
+        logEvent('query_result', {
+          hits: res.results.map(function (r) { return { chunkId: r.chunkId, score: r.rounded, matchedTokens: r.matchedTokens }; }),
+          hitCount: res.results.length, degradedHit: res.results.some(function (r) { return !r.usable; })
+        });
+        renderResults(res);
+        renderPrompt(res);
+        renderAnswer(res);
+      } finally {
+        setBusy(false);
+      }
+    }, COMPUTE_YIELD_MS);
+  }
+
+  /* ---------------- 分块参数变化 ---------------- */
+  function rebuild(first) {
+    var norm = C.normaliseParams($('csInput').value, $('ovInput').value, state.params);
+    state.clampMessages = norm.messages;
+    state.applied = { chunkSize: norm.chunkSize, overlap: norm.overlap };
+    $('csInput').value = norm.chunkSize;
+    $('ovInput').value = norm.overlap;
+    var built = C.buildChunks(state.notes, norm.chunkSize, norm.overlap);
+    state.chunks = built.chunks;
+    state.perNote = built.perNote;
+    state.fidelity = built.fidelity;
+    state.multiCount = built.multiCount;
+    state.index = C.buildIndex(built.chunks);
+    logEvent('index_build', {
+      noteCount: state.notes.length, chunkCount: built.chunks.length, N: state.index.N,
+      vocabSize: state.index.vocabSize, avgdl: C.round3(state.index.avgdl), ms: Math.round(state.index.ms * 100) / 100,
+      chunkSize: norm.chunkSize, overlap: norm.overlap, clamped: norm.messages.length > 0
+    });
+    renderChunks();
+    renderChunkPicker();
+    renderTokensAndIndex();
+    if (!first) {
+      state.last = null;
+      state.lastPrompt = null;
+      $('results').innerHTML = '<div class="box info">分块参数已更新（N = ' + state.index.N + '），请重新点击「检索」。</div>';
+      $('promptBox').innerHTML = '<p class="small muted">等待检索结果。</p>';
+      $('answerBox').innerHTML = '<p class="small muted">等待检索结果。</p>';
+    }
+  }
+  function renderTokensAndIndex() { renderQueryTokens(); renderIndex(); renderTerms(); }
+
+  /* ---------------- 理解自测（G3 记录工具） ---------------- */
+  var QUIZ = [
+    { id: 'q1', q: '本页 BM25 打分里的「文档 D」指的是什么？',
+      opts: ['整条笔记（标题 + 正文合成一个文档）', '每个 chunk 的正文文本，单字段', '笔记标题', '用户输入的 query'], a: 1,
+      why: 'PRD 4.2 ⑦ 与 D11：D = chunk 文本、单字段；标题只作展示不参与打分，也不做 BM25F。' },
+    { id: 'q2', q: '⑥「核心词 / 扩展词 / 排除词」三分类在本页参与打分吗？',
+      opts: ['参与，直接影响排序', '不参与；本页只做并排展示，真实系统里它会影响检索结果', '只在放宽遍参与', '只影响 IDF 的计算'], a: 1,
+      why: 'PRD D11 / 4.2 ⑥：打分只用用户 query 的原词分词。若让模拟环节的产出进入打分，⑦ 就不能再标「✅ 真实」。' },
+    { id: 'q3', q: '精确遍完全无命中时，页面会怎么处理？',
+      opts: ['直接返回空态', '放宽到单字（排除虚字表）再检索一遍，并标注「宽松命中、相关度较低」', '自动把 k1 调小重算', '把 query 拆成单字逐字各检索一次'], a: 1,
+      why: 'PRD 4.4 两遍策略：放宽遍只在精确遍 0 命中、且确实还有单字可放宽时执行。' },
+    { id: 'q4', q: '内容不完整的笔记（usable=false，例如图片型、风控页）在本页怎么处置？',
+      opts: ['不入库', '入库但不参与检索', '照常分块、照常被检索到，但结果上带标记与原因', '只允许被标题匹配命中'], a: 2,
+      why: 'PRD 4.5：内容不完整的笔记照常参与分块与检索（与 xhs-rag 行为一致），命中时带标记与原因。' },
+    { id: 'q5', q: '本页的排序结果能直接用来推断 xhs-rag 插件的线上表现吗？',
+      opts: ['能，两边算法相同', '不能：本页用真 BM25（有 IDF 与长度归一化），插件用自制 TF 变体（标题 ×3 + 覆盖率因子）', '只有「粉底液」这类词可以', '要联网才能判断'], a: 1,
+      why: 'PRD R1 / D12（P1）：算法不同，结论不可外推。页面顶部也写了这句话。' }
+  ];
+  function renderQuiz() {
+    $('quizBox').innerHTML = QUIZ.map(function (item) {
+      return '<div class="quiz-q" id="quiz-' + item.id + '"><b>' + esc(item.id.toUpperCase()) + '. ' + esc(item.q) + '</b>'
+        + item.opts.map(function (o, i) {
+          return '<label class="quiz-opt"><input type="radio" name="' + item.id + '" value="' + i + '"> ' + esc(o) + '</label>';
+        }).join('')
+        + '<div class="row tight"><button class="btn" data-quiz="' + item.id + '">确认答案</button></div>'
+        + '<div class="quiz-result" id="quizres-' + item.id + '"></div></div>';
+    }).join('');
+    renderQuizSummary();
+  }
+  function renderQuizSummary() {
+    var n = Object.keys(state.quizAnswered).length;
+    $('quizSummary').textContent = '已答 ' + n + ' / ' + QUIZ.length + ' 题，答对 ' + state.quizCorrect + ' 题。'
+      + (n === QUIZ.length ? '正确率 ' + Math.round(state.quizCorrect / QUIZ.length * 100) + '%（样本量不足，只作方向性信号，见 PRD R4）。' : '');
+  }
+  function answerQuiz(id) {
+    var item = QUIZ.filter(function (x) { return x.id === id; })[0];
+    if (!item || state.quizAnswered[id]) return;
+    var picked = document.querySelector('input[name="' + id + '"]:checked');
+    var resBox = $('quizres-' + id);
+    if (!picked) { resBox.innerHTML = '<span class="small muted">先选一个选项。</span>'; return; }
+    var correct = Number(picked.value) === item.a;
+    state.quizAnswered[id] = true;
+    if (correct) state.quizCorrect += 1;
+    logEvent('quiz_submit', { questionId: id, correct: correct });
+    resBox.innerHTML = '<span class="' + (correct ? 'ok-txt' : 'bad-txt') + '">' + (correct ? '✅ 答对' : '❌ 答错（正确答案：' + esc(item.opts[item.a]) + '）') + '</span>'
+      + '<br><span class="muted">解析：' + esc(item.why) + '</span>';
+    resBox.parentNode.querySelectorAll('input').forEach(function (i) { i.disabled = true; });
+    var btn = resBox.parentNode.querySelector('[data-quiz]');
+    if (btn) btn.disabled = true;
+    renderQuizSummary();
+  }
+
+  /* ---------------- 实现自检（交接说明 §9 的纯逻辑自测，当场复算） ---------------- */
+  function selfCheck() {
+    var items = [];
+    function add(id, name, ok, detail) { items.push({ id: id, name: name, ok: !!ok, detail: detail || '' }); }
+
+    /* 1. 分词测试向量（交接说明 §3.2 表里的 6 条，与语料无关，测的是分词规则本身） */
+    var vectors = [
+      ['厨房收纳', ['厨', '厨房', '房', '房收', '收', '收纳', '纳']],
+      ['冰箱', ['冰', '冰箱', '箱']],
+      ['的', ['的']],
+      ['樟脑丸防虫', ['樟', '樟脑', '脑', '脑丸', '丸', '丸防', '防', '防虫', '虫']],
+      ['露营', ['露', '露营', '营']],
+      ['免钉', ['免', '免钉', '钉']]
+    ];
+    var vecFails = vectors.filter(function (v) { return JSON.stringify(C.tokenize(v[0])) !== JSON.stringify(v[1]); });
+    add('§3.2', '分词测试向量 6 条逐条一致（交接说明 §3.2 原表）', vecFails.length === 0,
+      vecFails.length ? JSON.stringify(vecFails.map(function (v) { return [v[0], C.tokenize(v[0])]; })) : '6/6 通过（含 bigram 与单字顺序）');
+
+    /* 2. 参数推导 */
+    var p = state.params;
+    add('§3.3', 'chunkSize / overlap 由 12 条正文长度的中位数推导', p.chunkSize === Math.round(p.median * 0.5)
+      && p.overlap === Math.round(p.chunkSize * 0.2),
+      '中位数 ' + p.median + ' → chunkSize ' + p.chunkSize + '，overlap ' + p.overlap);
+
+    /* 3. 保真 + 分块数量 */
+    add('AC-4', '分块保真：去掉重叠拼接 == 原文', state.fidelity.ok,
+      state.fidelity.ok ? state.notes.length + '/' + state.notes.length + ' 条逐字相等' : JSON.stringify(state.fidelity.failures));
+    add('FR-4', '至少 3 条笔记切出 ≥2 个 chunk', state.multiCount >= 3, state.multiCount + ' / ' + state.notes.length + ' 条');
+
+    /* 4. 索引口径 */
+    var sumLen = state.index.chars.reduce(function (a, b) { return a + b; }, 0);
+    add('AC-5', 'avgdl 可人工核算（Σ|D| / N）', Math.abs(sumLen / state.index.N - state.index.avgdl) < 1e-12,
+      'Σ|D| = ' + sumLen + '，N = ' + state.index.N + ' → avgdl = ' + C.round3(state.index.avgdl));
+    var probe = '上海';
+    var manual = state.chunks.filter(function (c) { return c.text.toLowerCase().indexOf(probe) !== -1; }).length;
+    add('AC-5', 'df(t) == 含 t 的 chunk 数（用 indexOf 独立复算）', (state.index.df.get(probe) || 0) === manual,
+      'df(' + probe + ') 倒排表 = ' + (state.index.df.get(probe) || 0) + '，逐 chunk 扫描 = ' + manual);
+
+    /* 5. 确定性与分数可核算 */
+    var r1 = C.search(state.index, state.chunks, '云南旅游', {});
+    var r2 = C.search(state.index, state.chunks, '云南旅游', {});
+    var same = JSON.stringify(r1.results.map(function (r) { return [r.chunkId, r.rounded]; }))
+      === JSON.stringify(r2.results.map(function (r) { return [r.chunkId, r.rounded]; }));
+    add('AC-6', '同一 query 连续两次结果完全一致（含 tie-break）', same && r1.results.length > 0,
+      r1.results.map(function (r) { return r.chunkId.slice(-4) + '=' + r.rounded.toFixed(3); }).join(' | '));
+
+    var hand = r1.results[0];
+    if (hand) {
+      var reSum = hand.parts.reduce(function (a, pt) {
+        var df = state.index.df.get(pt.token) || 0;
+        var idf = Math.log(1 + (state.index.N - df + 0.5) / (df + 0.5));
+        var denom = pt.tf + C.K1 * (1 - C.B + C.B * hand.chars / state.index.avgdl);
+        return a + idf * (pt.tf * (C.K1 + 1)) / denom;
+      }, 0);
+      add('AC-6', 'top-1 分数可按公式独立复算（误差 < 1e-9）', Math.abs(reSum - hand.score) < 1e-9,
+        '页面 ' + hand.rounded.toFixed(3) + '，独立复算 ' + C.round3(reSum).toFixed(3) + '（' + hand.chunkId.slice(-9) + '）');
+    } else {
+      add('AC-6', 'top-1 分数可按公式独立复算', false, '「云南旅游」没有命中');
+    }
+
+    /* 6. 预置 query 的结果态 */
+    var presets = [
+      ['云南旅游', 'ok', 'precise'], ['上海餐厅', 'ok', 'precise'], ['粉底液', 'ok', 'precise'],
+      ['的', 'stopwords-only', 'precise'], ['雪山索道', 'ok', 'loose'], ['露营', 'none', 'precise']
+    ];
+    var presetFails = presets.filter(function (x) {
+      var r = C.search(state.index, state.chunks, x[0], {});
+      return r.reason !== x[1] || r.matchMode !== x[2];
+    });
+    add('AC-10', '5 条预置 query + 露营的结果态全部符合数据预期', presetFails.length === 0,
+      presetFails.length ? JSON.stringify(presetFails.map(function (x) { var r = C.search(state.index, state.chunks, x[0], {}); return [x[0], r.reason, r.matchMode]; }))
+        : '云南旅游=命中 / 上海餐厅=命中 / 粉底液=命中 / 的=空态 / 雪山索道=宽松命中 / 露营=空态');
+
+    /* 7. 全降级命中 + 参数夹取 */
+    var mian = C.search(state.index, state.chunks, '避雷', {});
+    add('AC-11', 'query「避雷」命中的全是内容不完整的笔记', mian.results.length > 0 && mian.allDegraded,
+      mian.results.map(function (r) { return r.chunkId.slice(-9) + (r.usable ? '(可用)' : '(不完整)'); }).join(', ') || '没有命中');
+    var clamp = C.normaliseParams(10, 9999, null);
+    add('B14 / AC-13', '非法参数被夹取且不静默接受', clamp.chunkSize === 40 && clamp.overlap === 39 && clamp.messages.length >= 2,
+      '输入 (10, 9999) → chunkSize=' + clamp.chunkSize + '、overlap=' + clamp.overlap + '，提示 ' + clamp.messages.length + ' 条');
+
+    /* 8. 标记齐全（7 个环节 / 5 真 2 模拟） */
+    add('AC-15', '环节标记齐备且与 4.2 一致（本版 7 个：5 ✅ + 2 🔶）',
+      STAGES.length === 7 && STAGES.filter(function (s) { return s.sim; }).length === 2
+      && STAGES.filter(function (s) { return s.sim; }).map(function (s) { return s.n; }).join('') === '⑥⑨',
+      STAGES.map(function (s) { return s.n + (s.sim ? '🔶' : '✅'); }).join(' '));
+    add('常量', 'k1 / b / topK / SNIPPET_PADDING 与交接说明 §5 一致',
+      C.K1 === 1.2 && C.B === 0.75 && C.TOP_K === 5 && C.SNIPPET_PADDING === 60,
+      'k1=' + C.K1 + '，b=' + C.B + '，topK=' + C.TOP_K + '，padding=' + C.SNIPPET_PADDING);
+
+    /* 9. 构造数据的预期（数据换了，这些预期也要当场验） */
+    var clean = state.notes.filter(function (n) { return String(n.text).indexOf('露') === -1 && String(n.text).indexOf('营') === -1; });
+    add('数据', '「露营」二字在语料里不出现（空态用例成立）', clean.length === state.notes.length,
+      clean.length + ' / ' + state.notes.length + ' 条正文不含 露/营');
+    var avoid = state.chunks.filter(function (c) { return c.text.indexOf('避雷') !== -1; });
+    add('数据', '「避雷」只出现在那条内容不完整的笔记里（B6 用例成立）',
+      avoid.length > 0 && avoid.every(function (c) { return !c.usable; }),
+      avoid.length + ' 个 chunk 含「避雷」，全部来自内容不完整的笔记');
+    add('数据', '3 个主题各 4 条，共 12 条', state.notes.length === 12
+      && THEMES.length === 3 && THEMES.every(function (t) {
+        return state.notes.filter(function (n) { return n.theme === t.id; }).length === 4;
+      }),
+      THEMES.map(function (t) { return t.name + '×' + state.notes.filter(function (n) { return n.theme === t.id; }).length; }).join(' / '));
+
+    var pass = items.filter(function (i) { return i.ok; }).length;
+    var allPass = pass === items.length;
+    $('selfCheckBox').innerHTML = '<div class="row tight"><span class="badge ' + (allPass ? 'real' : 'sim') + '" id="selfCheckSummary" data-selfcheck="'
+      + (allPass ? 'PASS' : 'FAIL') + '">SELFCHECK: ' + (allPass ? 'PASS' : 'FAIL') + ' ' + pass + '/' + items.length + '</span>'
+      + '<span class="small muted">页面加载时当场复算；这些不是写死的对勾。</span></div>'
+      + '<table class="tbl"><thead><tr><th>对应</th><th>检查项</th><th>结果</th><th>实测值 / 明细</th></tr></thead><tbody>'
+      + items.map(function (i) {
+        return '<tr><td><code>' + esc(i.id) + '</code></td><td>' + esc(i.name) + '</td>'
+          + '<td class="' + (i.ok ? 'selfcheck-ok' : 'selfcheck-fail') + '">' + (i.ok ? '✅ 通过' : '❌ 未通过') + '</td>'
+          + '<td style="white-space:normal">' + esc(i.detail) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    return { pass: pass, total: items.length, allPass: allPass };
+  }
+
+  /* ---------------- 导出 ---------------- */
+  function exportEvents() {
+    logEvent('export_events', { count: state.events.length + 1 });
+    var payload = {
+      page: 'rag-demo-20261006.html',
+      exportedAt: new Date().toISOString(),
+      spec: 'docs/prd/02-rag-web-demo-PRD.md v0.3 / docs/prd/05-实现交接说明.md',
+      note: '本版已删去「链接识别」与「抓取与解析」两个环节；数据为构造的 3 主题帖子，不是抓取结果。',
+      chunkParams: state.applied, stats: meta(),
+      eventTypes: C.EVENT_TYPES, events: state.events
+    };
+    var text = JSON.stringify(payload, null, 2);
+    var blob = new Blob([text], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'rag-demo-events-' + Date.now() + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* ---------------- 说明符号：点击钉住 / 点别处取消（触屏与键盘也能用） ---------------- */
+  function bindTips() {
+    document.addEventListener('click', function (e) {
+      var info = e.target.closest ? e.target.closest('.info') : null;
+      document.querySelectorAll('.info.pinned').forEach(function (el) { if (el !== info) el.classList.remove('pinned'); });
+      if (info) info.classList.toggle('pinned');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') document.querySelectorAll('.info.pinned').forEach(function (el) { el.classList.remove('pinned'); });
+    });
+  }
+
+  /* ---------------- 初始化 ---------------- */
+  function init() {
+    state.notes = (MOCK_DATA.notes || []).slice();
+    state.params = C.deriveChunkParams(state.notes);
+
+    /* 顶部一览 + 各区块标题的标记（唯一真源 STAGES） */
+    $('stageStrip').innerHTML = STAGES.map(function (s) {
+      return '<span class="strip-item ' + (s.sim ? 'sim' : 'real') + '">' + s.n + ' ' + esc(s.name) + ' '
+        + (s.sim ? '🔶 模拟' : '✅ 真实') + '<span class="small muted"> · ' + esc(s.prd) + '</span></span>';
+    }).join('');
+    STAGES.forEach(function (s) {
+      var slot = document.querySelector('[data-badge="' + s.badge + '"]');
+      if (!slot) return;
+      slot.outerHTML = '<span class="badge ' + (s.sim ? 'sim' : 'real') + '">' + (s.sim ? '🔶 模拟' : '✅ 真实') + '</span>'
+        + '<span class="small muted">' + esc(s.prd) + '</span>';
+    });
+
+    var m = meta();
+    $('dataLine').textContent = '数据集：' + (DATASET.name || '') + ' · '
+      + m.noteCount + ' 条（可用 ' + m.usableCount + ' / 内容不完整 ' + m.degradedCount + '）· '
+      + 'fictional=' + DATASET.fictional + ' · savedAt=' + (MOCK_DATA.savedAt || '');
+
+    searchBtn = $('searchBtn');
+    $('presetBtns').innerHTML = PRESET_QUERIES.map(function (p) {
+      return '<button class="btn preset" data-fill="' + esc(p.query) + '" title="' + esc(p.expect || '') + '">' + esc(p.query) + '</button>';
+    }).join('');
+    presetButtons = Array.prototype.slice.call(document.querySelectorAll('#presetBtns .btn'));
+
+    /* demo_load 必须是第一条事件 */
+    logEvent('demo_load', {
+      noteCount: m.noteCount, usableCount: m.usableCount, degradedCount: m.degradedCount,
+      themeCount: THEMES.length, offline: (typeof navigator !== 'undefined') && navigator.onLine === false
+    });
+
+    $('csInput').value = state.params.chunkSize;
+    $('ovInput').value = state.params.overlap;
+    renderNoteCards();
+    rebuild(true);
+    renderQuiz();
+    selfCheck();
+
+    /* 初始占位：还没检索过时不要留空白 */
+    $('results').innerHTML = '<div class="box info">还没有检索。先用上面的预置 query 按钮填入一个词（点按钮只填入、不自动执行，FR-13），再点「检索」。</div>';
+    $('promptBox').innerHTML = '<p class="small muted">等待检索结果。</p>';
+    $('answerBox').innerHTML = '<p class="small muted">等待检索结果。</p>';
+
+    /* 交互绑定 */
+    $('applyParamsBtn').addEventListener('click', function () { rebuild(false); });
+    $('resetParamsBtn').addEventListener('click', function () {
+      $('csInput').value = state.params.chunkSize; $('ovInput').value = state.params.overlap; rebuild(false);
+    });
+    $('csInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') rebuild(false); });
+    $('ovInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') rebuild(false); });
+    $('chunkPicker').addEventListener('change', renderChunkTokens);
+    $('queryInput').addEventListener('input', renderTokensAndIndex);
+    $('queryInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitSearch(); });
+    searchBtn.addEventListener('click', submitSearch);
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      var fill = t && t.getAttribute ? t.getAttribute('data-fill') : null;
+      if (fill) { $('queryInput').value = fill; renderTokensAndIndex(); $('queryInput').focus(); }
+      var jump = t && t.getAttribute ? t.getAttribute('data-jump') : null;
+      if (jump) {
+        var card = $('note-' + jump);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('target');
+          setTimeout(function () { card.classList.remove('target'); }, 1600);
+        }
+      }
+      var qid = t && t.getAttribute ? t.getAttribute('data-quiz') : null;
+      if (qid) answerQuiz(qid);
+    });
+    $('legend').addEventListener('toggle', function () { if ($('legend').open) logEvent('sim_badge_view', {}); });
+    /* ⑧ 里的 <details> 展开时记 prompt_preview（toggle 不冒泡，但捕获阶段能收到） */
+    document.getElementById('secPrompt').addEventListener('toggle', function (e) {
+      if (e.target && e.target.tagName === 'DETAILS' && e.target.open) logPromptPreview();
+    }, true);
+    $('exportBtn').addEventListener('click', exportEvents);
+    $('clearBtn').addEventListener('click', function () { state.events = []; state.seq = 0; renderEvents(); });
+    bindTips();
+    renderEvents();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

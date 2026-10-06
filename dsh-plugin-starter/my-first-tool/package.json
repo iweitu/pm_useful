@@ -1,0 +1,16 @@
+{
+  "name": "@local/my-first-tool",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A minimal DSH bundle that registers one model-visible tool.",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

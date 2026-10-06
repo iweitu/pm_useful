@@ -1,0 +1,9 @@
+# A bundle patch is a top-level YAML array of Loader patch entries.
+# `insert` adds new rows to the profile's Cordis configuration tree.
+# The row `id` is the stable address other layers (including your profile's
+# cordis.patch.yml) use to override or disable this row later.
+- insert:
+    - id: my-first-tool
+      name: '@local/my-first-tool'
+      config:
+        greeting: 你好

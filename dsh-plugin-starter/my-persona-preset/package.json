@@ -1,0 +1,12 @@
+{
+  "name": "@local/my-persona-preset",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Declares one agent preset: a persona plus a restricted tool set.",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

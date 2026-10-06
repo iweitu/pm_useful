@@ -1,0 +1,12 @@
+{
+  "name": "@local/dsh-prd-partner",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "需求 agent preset：把模糊需求压成可评审 PRD；固定骨架 + 一页需求卡，只改必要章节，不写代码、不执行命令。",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

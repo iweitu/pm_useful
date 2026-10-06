@@ -1,0 +1,21 @@
+# An agent preset is an ordinary @deepseek-ai/dsh-agent-preset row whose
+# `config.plugins` is a nested Cordis entry list. Packages shipped with dsh
+# (@deepseek-ai/dsh-persona, @deepseek-ai/dsh-tool-bash, ...) resolve from the
+# dsh installation, so this bundle declares no dependencies on them.
+- insert:
+    - id: preset-my-reviewer
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: my-reviewer
+        name: My Reviewer
+        description: Reviews changes with a shell and a fixed persona.
+        order: 50
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You review software changes. Be terse and concrete.
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'

@@ -16,3 +16,6 @@ __pycache__/
 node_modules/
 dist/
 build/
+
+# Local scratch (e.g. the YAML parser extracted from app.asar for offline verification)
+.cache/
