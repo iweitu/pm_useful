@@ -11,10 +11,14 @@
 ## 快速开始
 
 ```powershell
-# 1) 看页面：直接双击，或
-start rag-demo-20261006-v4.html        # 断网也能用
+# 方式 A：本地 HTTP（推荐，便于多浏览器/截图/录屏）
+node tools/serve.mjs            # 默认 http://127.0.0.1:8788/，端口被占用会自动往后找
+node tools/serve.mjs 9000       # 也可指定端口
 
-# 2) 重跑验证（需要 Node ≥ 18，无第三方依赖）
+# 方式 B：直接双击（file:// 同样全功能）
+start rag-demo-20261006-v4.html
+
+# 重跑验证（需要 Node ≥ 18，无第三方依赖）
 node tools/verify-v4.mjs        # 核心逻辑 + 静态检查：81 项
 node tools/ui-smoke-v4.mjs      # UI 冒烟（自带最小 DOM 垫片，不需要浏览器）：39 项
 node tools/ground-truth.mjs     # 打印语料 / 索引 / 回答的真值，便于人工核对
@@ -29,6 +33,7 @@ node tools/ground-truth.mjs     # 打印语料 / 索引 / 回答的真值，便�
 | `rag-demo-20261006-v4.html` | **当前交付物**（单文件，CSS/JS/数据全内嵌） |
 | `data/xhs-notes-3themes.json` | 语料源（12 条构造帖子，3 主题：云南旅游 / 上海餐厅 / 敏感肌油皮粉底液） |
 | `data/answers-v4.json` | 真实 LLM 回答源（7 条 query × 有 RAG / 无 RAG 两段 + 人工对照小结） |
+| `tools/serve.mjs` | 零依赖本地静态服务器（只在 127.0.0.1 监听），把页面挂在 http:// 上 |
 | `tools/verify-v4.mjs` | 从交付物里**抽出真实代码**跑检查（核心/静态 81 项），含独立重写的 BM25 与三遍管线比对 |
 | `tools/ui-smoke-v4.mjs` | 最小 DOM 垫片跑 UI 全链路（39 项），不需要浏览器 |
 | `tools/ground-truth.mjs` | 打印真值（N / 词典 / avgdl / 保真 / prompt hash 等） |
