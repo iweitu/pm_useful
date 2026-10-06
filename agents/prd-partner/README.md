@@ -109,15 +109,29 @@ Copy-Item "$profile\pnpm-lock.yaml" "$profile\pnpm-lock.yaml.backup"
 第 2 步的脚本只追加 `dsh.profile.bundles` 这一个数组，不动其它字段。不要手工改 profile 的
 `cordis.patch.yml`，也不要在 profile 目录里跑裸 pnpm——`install_bundle` 已经包含这些步骤。
 
-### 当前安装状态（2026-10-05，desktop profile）
+### 当前安装状态（2026-10-05 安装 v1.0.0；2026-10-06 更新到 v1.1.0，desktop profile）
 
 | 项 | 结果 |
 |---|---|
 | `pnpm add file:...` | 成功，`@local/dsh-prd-partner` 进 `dependencies`；lockfile `resolution: {type: directory}` |
 | `dsh.profile.bundles` | 已追加 `@local/dsh-prd-partner`（置末位，不覆盖内置 preset） |
-| 安装副本 | profile 里是**副本**而非符号链接，3 个文件与源文件 SHA256 一致 |
-| 备份 | `package.json.prd-partner-backup`、`pnpm-lock.yaml.prd-partner-backup` |
-| 运行时激活 | **未确认**——本会话没有 `list_plugins`，需要你在 GUI 里看一眼（见下） |
+| 安装副本 | profile 里是**副本**而非符号链接；**改源码后必须重新同步**（pnpm 会认为「已经是最新」而不重新复制，见下） |
+| 备份 | `package.json.prd-partner-backup`、`pnpm-lock.yaml.prd-partner-backup`；v1.1.0 更新时另存了 `node_modules\@local\dsh-prd-partner.backup-20261006` |
+| 运行时激活 | 需要你在 GUI 里看一眼（见下）|
+
+**v1.1.0 的更新方式（可复用）**：`plugin_manager` 的 `install_bundle` 对同一个 `file:` 依赖会返回
+`ambiguous-install` / `changed:false`（pnpm 报 "Already up to date"，不重新复制文件）。此时按下面的方式
+把 3 个文件同步进 profile 副本（先备份），校验 `cordis.patch.yml` 与源文件 SHA256 一致即可：
+
+```powershell
+$src = "<仓库>\agents\prd-partner"
+$dst = "$env:DSH_PROFILE_DIR\node_modules\@local\dsh-prd-partner"
+Copy-Item "$dst\*" "$dst.backup-$(Get-Date -Format yyyyMMdd)" -Force   # 先备份
+foreach ($f in 'cordis.patch.yml','package.json','README.md') { Copy-Item "$src\$f" "$dst\$f" -Force }
+(Get-FileHash "$src\cordis.patch.yml").Hash -eq (Get-FileHash "$dst\cordis.patch.yml").Hash   # 应为 True
+```
+
+改完刷新页面（profile manifest 的改动由 HMR 重新组合配置树，通常不必重启 Harness）。
 
 ### 卸载 / 回滚
 
@@ -177,10 +191,10 @@ Copy-Item "$profile\pnpm-lock.yaml.prd-partner-backup" "$profile\pnpm-lock.yaml"
 
 ## 局限
 
-- 本 bundle 已通过**静态校验**（YAML 可解析、补丁方言正确、所有包名都在 DSH 可加载清单内、行 id 无重复），
-  也已装进 desktop profile；但**运行时激活状态尚未确认**——做这次安装的会话里没有 `list_plugins`
-  工具。请按上面第 2 步在 GUI 里确认一次。
+- 本 bundle 已通过**静态校验**（YAML 可解析、补丁方言正确、所有包名都在 DSH 可加载清单内、行 id 无重复）。
+  `list_bundles` 确认 `@local/dsh-prd-partner` 为 `installed: true` / `enabled: true`，行 `preset-prd-partner` 存在；
+  但**「设置 → Agent preset」里的卡片与工具列表仍需你亲眼看一次**（静态校验与注册表都证明不了 UI 与工具挂载）。
 - preset 声明一旦安装即被**急切激活**并由所有选用它的会话共享；已有会话保留启动时的插件版本，因此
   改动只对新会话生效。
-- profile 里装的是**副本**，不是指向本目录的符号链接：改完源文件必须重跑安装流程（`pnpm add` 会重新
-  复制），否则改了不生效。
+- profile 里装的是**副本**，不是指向本目录的符号链接：改完源文件必须重新同步
+  （见「当前安装状态」里的手动同步步骤），否则改了不生效。
