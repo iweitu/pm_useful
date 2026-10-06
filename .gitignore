@@ -19,3 +19,6 @@ build/
 
 # Local scratch (e.g. the YAML parser extracted from app.asar for offline verification)
 .cache/
+
+# DSH 参考文档转储：本地参考用（agent 校验脚本的 packages.md 在这里，可从 app.asar 重新提取），不入库
+dsh-docs/

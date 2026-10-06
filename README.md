@@ -9,6 +9,8 @@
 | `skills/` | DSH 可加载技能（SKILL.md） | 见下方索引 |
 | `agents/` | DSH agent preset（bundle 补丁） | 见 Agent 索引 |
 | `demo/` | 可交付的单文件演示/工具（含数据源与验证脚本） | 见 Demo 索引 |
+| `docs/` | 需求与设计过程文档 | [PRD 索引](docs/prd/) |
+| `xhs-kit/` | 小红书链接解析工具包（Python，零依赖）+ 完整技能文档 | 见「小红书链接解析」一节 |
 | `tools/` | 自定义工具与自动化脚本 | 见 tools 索引 |
 | `prompts/` | 高质量 Prompt 模板库 | 待填充 |
 | `knowledge/` | 领域知识、学习笔记与参考资料 | 见下方索引 |
@@ -54,6 +56,7 @@ DSH 的 skill 不是插件，靠扫描目录发现，`dsh plugin add` 装不了�
 | [competitor-analysis](skills/competitor-analysis/SKILL.md) | 竞品功能对比与差异化结论 | “分析竞品”“我们和对手差在哪” |
 | [priority-scoring](skills/priority-scoring/SKILL.md) | RICE/ICE 量化需求优先级 | “排需求优先级”“先做哪个” |
 | [user-feedback-synthesis](skills/user-feedback-synthesis/SKILL.md) | 用户反馈聚类成需求主题与证据 | “整理用户反馈”“访谈总结” |
+| [xhs-link-parse](skills/xhs-link-parse/SKILL.md) | 小红书链接/分享文案 → 结构化笔记内容；拿不到正文时**说明原因**（登录墙 / 风控 / 仅浅解析），不顺着标题编内容 | “解析这个小红书链接”“这段分享文案”“为什么它解析不出来” |
 
 ### 同步到扫描根（必需）
 
@@ -108,6 +111,21 @@ $node = "C:\Users\oshen\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\
 | 文档 | 主题 | 说明 |
 |---|---|---|
 | [一文完全读懂RAG](knowledge/一文完全读懂RAG.md) | RAG 全链路 | 从原理、检索方法、Query 改写、Rerank 到评估体系与框架选型，含一个完整实战 |
+
+## 小红书链接解析（xhs-kit）
+
+把「小红书链接 / 分享文案 / 已保存的网页快照」变成 Agent 能用的结构化笔记内容（标题/正文/图集/话题/作者/互动），
+并在**拿不到正文时给出准确原因与替代路径**，而不是顺着标题编内容。
+
+| 位置 | 内容 |
+|---|---|
+| [skills/xhs-link-parse/SKILL.md](skills/xhs-link-parse/SKILL.md) | 技能入口（决策树 + 红线），指向下面的工具与文档 |
+| [xhs-kit/xhs_kit.py](xhs-kit/xhs_kit.py) | 解析器，纯标准库零依赖；子命令 `share` / `html` / `resolve` / `fetch` / `api` |
+| [xhs-kit/tests/](xhs-kit/tests/) | 单元测试与 fixtures（`login_wall` / `risk_control` / `og_only` / `pc_note`） |
+| [小红书链接解析_调研与能力方案.md](小红书链接解析_调研与能力方案.md) | 背景调研：豆包 / 飞猪等 App 的数据来源、合规红线与能力方案 |
+
+**一句话前提**：小红书 Web 是强登录站点，未登录匿名请求**拿不到正文**；分享链接能解析出的只有卡片级元数据。
+声称「未登录就能读全文」的，要么服务端有登录态、要么用了外部数据服务、要么只拿到了标题 + 封面。
 
 ## 使用约定
 
