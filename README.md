@@ -10,6 +10,7 @@
 | `agents/` | DSH agent preset（bundle 补丁） | 见 Agent 索引 |
 | `demo/` | 可交付的单文件演示/工具（含数据源与验证脚本） | 见 Demo 索引 |
 | `docs/` | 需求与设计过程文档 | [PRD 索引](docs/prd/) |
+| `docs/prd/` | 规划与规格文档 | [PM Agent 矩阵规划](docs/prd/06-PM-agent矩阵-成本收益与优先级规划.md)（v0.5：6 项目成本/收益/优先级 + **三层知识分区** + 公司侧半自动方案 + 三仓方案；**无 Blocker，可开工**）<br>[线 A / 线 B 启动方案](docs/prd/07-线A线B启动方案.md)（v1.0：两条线各自的起手动作、第一周验收、失败预案） |
 | `xhs-kit/` | 小红书链接解析工具包（Python，零依赖）+ 完整技能文档 | 见「小红书链接解析」一节 |
 | `tools/` | 自定义工具与自动化脚本 | 见 tools 索引 |
 | `prompts/` | 高质量 Prompt 模板库 | 待填充 |
